@@ -54,7 +54,7 @@ found, params := s.Lookup(in)
 // true [{Name:p1 Value:bar} {Name:p2 Value:日本語}]
 ```
 
-[On playground]()
+[On playground](https://play.golang.org/p/wOS1TUMnl38)
 
 ## Guide
 
@@ -68,7 +68,23 @@ go get github.com/gebv/strparam
 
 ```golang
 package main
+
+import (
+	"fmt"
+
+	"github.com/gebv/strparam"
+)
+
+func main() {
+	in := "foo=(bar), baz=(日本語), golang"
+	s, _ := strparam.Parse("foo=({p1}), baz=({p2}), golang")
+	ok, params := s.Lookup(in)
+    fmt.Printf("%v %+v", ok, params)
+}
+
 ```
+
+[On playground](https://play.golang.org/p/wOS1TUMnl38)
 
 ## How does it work?
 
