@@ -47,14 +47,14 @@ func TestDemoRegexp(t *testing.T) {
 		re := regexp.MustCompile(`foo=\((.*)\), baz=\((.*)\), golang`)
 		res := re.FindAllStringSubmatch(in, -1)
 		t.Logf("%+v", res)
-		assert.EqualValues(t, [][]string{[]string{"foo=(bar), baz=(日本語), golang", "bar", "日本語"}}, res)
+		assert.EqualValues(t, [][]string{{"foo=(bar), baz=(日本語), golang", "bar", "日本語"}}, res)
 	})
 
 	t.Run("regexp2", func(t *testing.T) {
 		re := regexp.MustCompile(`\(([^)]+)\)`)
 		res := re.FindAllStringSubmatch(in, -1)
 		t.Logf("%+v", res)
-		assert.EqualValues(t, [][]string{[]string{"(bar)", "bar"}, []string{"(日本語)", "日本語"}}, res)
+		assert.EqualValues(t, [][]string{{"(bar)", "bar"}, {"(日本語)", "日本語"}}, res)
 	})
 
 	t.Run("strparam", func(t *testing.T) {
