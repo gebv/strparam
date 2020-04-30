@@ -2,13 +2,15 @@ package strparam
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 )
 
 func NewStore() *Store {
 	return &Store{
-		root: &node{Token: Token{}},
+		root:       &node{Token: Token{}},
+		tokensPool: sync.Pool{},
 	}
 }
 
@@ -18,18 +20,36 @@ func (r *Store) Add(in string) error {
 		return errors.Wrap(err, "failed parse")
 	}
 
+	if len(schema.Tokens) > r.maxSize {
+		r.maxSize = len(schema.Tokens)
+		r.tokensPool.New = func() interface{} { return make([]Token, 0, r.maxSize) }
+	}
+
 	appendChild(r.root, 0, schema.Tokens)
 
 	return nil
 }
 
+// func (r *Store) Handler(in string, fn func(params Params)) error {
+// 	schema, err := r.Find(in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	ok, params := schema.Lookup(in)
+// 	if ok {
+// 		fn(params)
+// 	}
+// 	return nil
+// }
+
 func (r *Store) Find(in string) (*PatternSchema, error) {
-	res := []Token{} // TODO: save maximum size
+	tokens := r.getlistTokens()
 	numParams := 0
 
-	lookupNextToken(in, 0, r.root, &res, &numParams)
+	lookupNextToken(in, 0, r.root, &tokens, &numParams)
+	defer r.putlistTokens(tokens)
 
-	return &PatternSchema{Tokens: res, NumParams: numParams}, nil
+	return &PatternSchema{Tokens: tokens, NumParams: numParams}, nil
 }
 
 func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParams *int) {
@@ -101,6 +121,9 @@ func appendChild(parent *node, i int, tokens []Token) {
 
 type Store struct {
 	root *node
+	// max size slice of tokens for all patterns
+	maxSize    int
+	tokensPool sync.Pool
 }
 
 type node struct {

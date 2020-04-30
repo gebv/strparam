@@ -10,7 +10,8 @@ import (
 //
 // Iterate over the UTF-8 characters (with correct offset of bytes).
 func Parse(in string) (*PatternSchema, error) {
-	tokens := []Token{}
+	tokens := getlistTokens()
+	defer putlistTokens(tokens)
 
 	// end and start of parameter positions in bytes
 	var start, end int = 0, 0
@@ -104,8 +105,8 @@ func Parse(in string) (*PatternSchema, error) {
 
 // Lookup returns list params if input string matched to schema.
 func (s *PatternSchema) Lookup(in string) (bool, Params) {
-	params := make(Params, s.NumParams)
-	seqparams := 0
+	params := getListParams()
+	defer putListParams(params)
 
 	// this is the sum of the lengths of the patterns and found value of parameters
 	var offset int
@@ -119,29 +120,26 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 				return false, nil
 			}
 		case PARAMETER_PARSED:
-			params[seqparams] = Param{
+			params = append(params, Param{
 				Name:  t.ParamName(),
 				Value: in[offset : offset+t.Len],
-			}
+			})
 			offset += t.Len
-			seqparams++
 		case PARAMETER:
 			_next := s.Tokens[num+1]
 			switch _next.Mode {
 			case ENDLINE:
-				params[seqparams] = Param{
+				params = append(params, Param{
 					Name:  t.ParamName(),
 					Value: in[offset:],
-				}
-				seqparams++
+				})
 				offset += len(in) - offset
 			case PATTERN:
 				if found := strings.Index(in[offset:], _next.Raw); found > -1 {
-					params[seqparams] = Param{
+					params = append(params, Param{
 						Name:  t.ParamName(),
 						Value: in[offset : offset+found],
-					}
-					seqparams++
+					})
 					// add the length of the found parameter value
 					offset += found
 				}
@@ -160,7 +158,7 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 		}
 	}
 
-	if seqparams != s.NumParams {
+	if len(params) != s.NumParams {
 		return false, nil
 	}
 	return true, params

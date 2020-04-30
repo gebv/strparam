@@ -39,11 +39,15 @@ But regular expressions is slow on golang.
 
 ```
 BenchmarkParamsViaRegexp1
-BenchmarkParamsViaRegexp1-4    	   22818	     50851 ns/op	   18994 B/op	       5 allocs/op
+BenchmarkParamsViaRegexp1-4                	   23230	     56140 ns/op	   19258 B/op	       5 allocs/op
 BenchmarkParamsViaRegexp2
-BenchmarkParamsViaRegexp2-4    	   47041	     24834 ns/op	   28218 B/op	       8 allocs/op
-BenchmarkParamsViaStrparam
-BenchmarkParamsViaStrparam-4   	  474166	      2248 ns/op	      64 B/op	       1 allocs/op
+BenchmarkParamsViaRegexp2-4                	   52396	     23079 ns/op	   28310 B/op	       8 allocs/op
+BenchmarkParamsViaStrparam_NumParams2
+BenchmarkParamsViaStrparam_NumParams2-4    	  315464	      3467 ns/op	     295 B/op	       1 allocs/op
+BenchmarkParamsViaStrparam_NumParams5
+BenchmarkParamsViaStrparam_NumParams5-4    	  193682	      5444 ns/op	     296 B/op	       1 allocs/op
+BenchmarkParamsViaStrparam_NumParams20
+BenchmarkParamsViaStrparam_NumParams20-4   	   72276	     18467 ns/op	     297 B/op	       1 allocs/op
 ```
 
 Faster solution.

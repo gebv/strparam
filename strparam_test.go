@@ -91,9 +91,31 @@ func BenchmarkParamsViaRegexp2(b *testing.B) {
 	}
 }
 
-func BenchmarkParamsViaStrparam(b *testing.B) {
+func BenchmarkParamsViaStrparam_NumParams2(b *testing.B) {
 	in := "foo=(bar), baz=(日本語), golang"
 	s, _ := Parse("foo=({p1}), baz=({p2}), golang")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Lookup(in)
+	}
+}
+
+func BenchmarkParamsViaStrparam_NumParams5(b *testing.B) {
+	in := "foo1=(bar), baz2=(日本語), foo3=(bar), baz4=(日本語), foo5=(bar) golang"
+	s, _ := Parse("foo1=({p1}), baz2=({p2}), foo3=({p3}), baz4=({p4}), foo5=({p5}) golang")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Lookup(in)
+	}
+}
+
+func BenchmarkParamsViaStrparam_NumParams20(b *testing.B) {
+	in := "foo1=(bar), baz2=(日本語), foo3=(bar), baz4=(日本語), foo5=(bar), baz6=(日本語), foo7=(bar), baz8=(日本語), foo9=(bar), baz10=(日本語), foo11=(bar), baz12=(日本語), foo13=(bar), baz14=(日本語), foo15=(bar), baz16=(日本語), foo17=(bar), baz18=(日本語), foo19=(bar), baz20=(日本語) golang"
+	s, _ := Parse("foo1=({p1}), baz2=({p2}), foo3=({p3}), baz4=({p4}), foo5=({p5}), baz6=({p6}), foo7=({p7}), baz8=({p8}), foo9=({p9}), baz10=({p10}), foo11=({p11}), baz12=({p12}), foo13=({p13}), baz14=({p14}), foo15=({p15}), baz16=({p16}), foo17=({p17}), baz18=({p18}), foo19=({p19}), baz20=({p20}) golang")
 
 	b.ReportAllocs()
 	b.ResetTimer()
