@@ -92,11 +92,11 @@ func main() {
 
 ## TODO
 
-- [ ] store of patterns, lookup matched pattern by input string and extract params
+- [ ] multiple patterns, lookup and extract params
 - [ ] extend parameters for internal validators, eg `{paramName required, len=10}`
 - [ ] external validators via hooks
 - [ ] stream parser
 
 # License
 
-[MIN](LICENSE)
+[MIT](LICENSE)
