@@ -9,6 +9,7 @@
 Features
 * correctrly parse UTF-8 characters
 * faster regexp
+* [lookup on multiple patterns]()
 
 ## Introduction
 
@@ -56,6 +57,21 @@ found, params := s.Lookup(in)
 
 [On playground](https://play.golang.org/p/wOS1TUMnl38)
 
+## Lookup on multiple patterns
+
+```golang
+r := NewStore()
+r.Add("foo2{p1}foo2{p2}golang")
+r.Add("foo1{p3}foo1{p4}golang")
+
+in := "foo1XXXfoo1YYYgolang"
+
+schema, _ := r.Find(in)
+found, params := schema.Lookup(in)
+```
+
+[On playground]()
+
 ## Guide
 
 ### Installation
@@ -92,7 +108,7 @@ func main() {
 
 ## TODO
 
-- [ ] multiple patterns, lookup and extract params
+- [x] multiple patterns, lookup and extract params
 - [ ] extend parameters for internal validators, eg `{paramName required, len=10}`
 - [ ] external validators via hooks
 - [ ] stream parser
