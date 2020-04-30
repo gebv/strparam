@@ -9,7 +9,7 @@
 Features
 * correctrly parse UTF-8 characters
 * faster than regular expression
-* [lookup on multiple patterns](#lookup-on-multiple-patterns)
+* [multiple pattern match](#multiple-pattern-match)
 
 ## Introduction
 
@@ -61,7 +61,9 @@ found, params := s.Lookup(in)
 
 [On playground](https://play.golang.org/p/wOS1TUMnl38)
 
-## Lookup on multiple patterns
+## Multiple pattern match
+
+Performing multiple pattern match for input string.
 
 ```golang
 r := NewStore()
