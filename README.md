@@ -10,7 +10,7 @@ Features
 * correctrly parse UTF-8 characters
 * faster regexp
 
-## Intradaction
+## Introduction
 
 Pattern example `foo=(..), baz=(..), golang`. Instead of `..` can be any value.
 
