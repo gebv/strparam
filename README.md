@@ -9,7 +9,7 @@
 Features
 * correctrly parse UTF-8 characters
 * faster regexp
-* [lookup on multiple patterns]()
+* [lookup on multiple patterns](#lookup-on-multiple-patterns)
 
 ## Introduction
 
@@ -70,7 +70,7 @@ schema, _ := r.Find(in)
 found, params := schema.Lookup(in)
 ```
 
-[On playground]()
+[On playground](https://play.golang.org/p/h6u4BHGTsa0)
 
 ## Guide
 
