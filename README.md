@@ -8,7 +8,7 @@
 
 Features
 * correctrly parse UTF-8 characters
-* faster regexp
+* faster than regular expression
 * [lookup on multiple patterns](#lookup-on-multiple-patterns)
 
 ## Introduction
