@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/gebv/strparam)](https://goreportcard.com/report/github.com/gebv/strparam)
 [![codecov](https://codecov.io/gh/gebv/strparam/branch/master/graph/badge.svg)](https://codecov.io/gh/gebv/strparam)
 
-40 times faster аlternative to regex for string matching by pattern and extract params.
+40 times faster аlternative to regex for string matching by pattern and extract params. This is solution as a middle point between simple strings and regular expressions.
 
 Features
 * correctly parses UTF-8 characters
@@ -139,7 +139,7 @@ This pattern `foo=({p1}), baz=({p2}), golang` looks like an array
 ]
 ```
 
-At the time of parsing the incoming string move around the token array if each token matches. Moving from token to token, we keep the general offset. For parameters, look for the next constant or end of line.
+At the time of parsing the incoming string move around the token array if each token matches. Moving from token to token, we keep the general offset. For parameters, look for the next constant (search window) or end of line.
 
 Prefix-tree is used to store the list of patterns.
 
