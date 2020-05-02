@@ -53,7 +53,7 @@ func (m TokenMode) String() string {
 	case PATTERN:
 		return "pattern"
 	case PARAMETER:
-		return "paremeter"
+		return "parameter"
 	case BEGINLINE:
 		return "begin"
 	case ENDLINE:

@@ -124,22 +124,22 @@ func main() {
 
 Pattern is parse into array of
 * tokens with offset information in bytes **for constants**.
-* tokens with information of parameter (paremter name and other information).
+* tokens with information of parameter (parameter name and other information).
 
 This pattern `foo=({p1}), baz=({p2}), golang` looks like an array
 ```
 [
     {Mode:begin}
     {Mode:pattern Len:5 Raw:"foo=("} // constant
-    {Mode:paremeter Raw:"{p1}"}
+    {Mode:parameter Raw:"{p1}"}
     {Mode:pattern Len:8 Raw:"), baz=("}
-    {Mode:paremeter Raw:"{p2}"}
+    {Mode:parameter Raw:"{p2}"}
     {Mode:pattern Len:9 Raw:"), golang"}
     {Mode:end}
 ]
 ```
 
-At the time of parsing the incoming string move around the token array if each token matches. Moving from token to token, we keep the general offset. For parameters, look for the next constant (search window) or end of line.
+At the time of parsing the incoming string move around the token array if each token matches. Moving from token to token, we keep the general offset (matching shift). For parameters, look for the next constant (search window) or end of line.
 
 Prefix-tree is used to store the list of patterns.
 
