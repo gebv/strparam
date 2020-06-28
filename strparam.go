@@ -112,6 +112,10 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 	var offset int
 
 	for num, t := range s.Tokens {
+		if len(in) < offset || len(in) < offset+t.Len {
+			return false, nil
+		}
+
 		switch t.Mode {
 		case BEGINLINE:
 		case ENDLINE:

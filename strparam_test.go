@@ -22,6 +22,8 @@ func TestParse(t *testing.T) {
 		{"simple1", "foo{p1}bar", "foo123bar", Params{{"p1", "123"}}, true, false},
 		{"utf8pattern", "foo{p1}日本語{p2}baz", "fooAAA日本語BBBbaz", Params{{"p1", "AAA"}, {"p2", "BBB"}}, true, false},
 		{"utf8param", "foo{p1}bar{p2}baz", "foo日本語barСЫРbaz", Params{{"p1", "日本語"}, {"p2", "СЫР"}}, true, false},
+		{"issues#1", "#snippet-{boundary}", "foobar", nil, false, false},
+		{"issues#1", "verylongpattern-{p1}", "smallinput", nil, false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
