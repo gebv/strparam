@@ -1,6 +1,9 @@
 package strparam
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 var DefaultStartParam = '{'
 var DefaultEndParam = '}'
@@ -25,6 +28,8 @@ func (t *Token) String() string {
 		return fmt.Sprintf("Pattern(%q, len=%d)", t.Raw, t.Len)
 	case PARAMETER:
 		return fmt.Sprintf("Parameter(%q)", t.Raw)
+	case PARAMETER_PARSED:
+		return fmt.Sprintf("ParsedParameter(%s=%q)", t.ParamName(), t.Raw)
 	case BEGINLINE:
 		return fmt.Sprintf("START")
 	case ENDLINE:
@@ -45,6 +50,21 @@ func (t *Token) ParamName() string {
 	}
 	return ""
 }
+
+type Tokens []Token
+
+func (t Tokens) String() string {
+	res := new(bytes.Buffer)
+	for i, token := range t {
+		if i > 0 {
+			fmt.Fprint(res, "->")
+		}
+		fmt.Fprint(res, token.String())
+	}
+	return res.String()
+}
+
+var StartEndTokens = Tokens{{Mode: BEGINLINE}, {Mode: ENDLINE}}
 
 type TokenMode int
 

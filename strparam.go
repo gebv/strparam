@@ -1,7 +1,6 @@
 package strparam
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"unicode/utf8"
@@ -195,19 +194,6 @@ type PatternSchema struct {
 	Pattern   string
 	Tokens    Tokens
 	NumParams int
-}
-
-type Tokens []Token
-
-func (t Tokens) String() string {
-	res := new(bytes.Buffer)
-	for i, token := range t {
-		if i > 0 {
-			fmt.Fprint(res, "->")
-		}
-		fmt.Fprint(res, token.String())
-	}
-	return res.String()
 }
 
 type Param struct {

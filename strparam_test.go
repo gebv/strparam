@@ -25,6 +25,7 @@ var basicCases = []struct {
 	{"empty", "qwe", "123qwe", nil, false, false},
 	{"empty", "qwe", "qw123e", nil, false, false},
 	{"allAsParam", "{qwe}", "123", Params{{"qwe", "123"}}, true, false},
+	{"", "{qwe}foobar", "", nil, false, false},
 	{"allAsParam", "{qwe}", "", Params{{"qwe", ""}}, true, false},
 	{"onlyTwoParams", "{foo}{bar}", "", nil, false, true},
 	{"onlyTwoParams", "{foo}{bar}", "123", nil, false, true},
@@ -46,7 +47,7 @@ var basicCases = []struct {
 	{"issues#2", "fooobar{v2}", "fooobar", Params{{"v2", ""}}, true, false},
 }
 
-func TestParse(t *testing.T) {
+func Test_Parse(t *testing.T) {
 	tests := []struct {
 		name    string
 		pattern string
@@ -84,7 +85,7 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
-func TestParseAndLookup_EmptySchema(t *testing.T) {
+func Test_ParseAndLookup_EmptySchema(t *testing.T) {
 	s := &PatternSchema{Tokens: []Token{}, NumParams: 0}
 	t.Run("emptyListTokensNotMatchedInEmpty", func(t *testing.T) {
 		found, params := s.Lookup("")
@@ -100,8 +101,7 @@ func TestParseAndLookup_EmptySchema(t *testing.T) {
 	s, err := Parse("")
 	require.NoError(t, err)
 	require.Len(t, s.Tokens, 2)
-	require.Equal(t, s.Tokens[0].Mode, BEGINLINE)
-	require.Equal(t, s.Tokens[1].Mode, ENDLINE)
+	require.Equal(t, StartEndTokens, s.Tokens)
 
 	t.Run("emptySchemaMatchedInEmpty", func(t *testing.T) {
 		found, params := s.Lookup("")
