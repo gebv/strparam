@@ -52,12 +52,16 @@ func (m TokenMode) String() string {
 	switch m {
 	case PATTERN:
 		return "pattern"
+	case UNKNOWN_TokenMode:
+		return "empty_token?"
 	case PARAMETER:
 		return "parameter"
 	case BEGINLINE:
 		return "begin"
 	case ENDLINE:
 		return "end"
+	case PARAMETER_PARSED:
+		return "parsed_param"
 	}
 
 	return fmt.Sprintf("TokenMode(%d)", m)

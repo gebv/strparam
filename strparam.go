@@ -15,8 +15,8 @@ func Parse(in string) (*PatternSchema, error) {
 
 	// end and start of parameter positions in bytes
 	var start, end int = 0, 0
-	// current mode
-	var mode TokenMode
+	// current mode (initial as Pattern)
+	var mode TokenMode = PATTERN
 	// is flag of start char of input string
 	var EOF bool
 	// number of parameters
@@ -39,7 +39,7 @@ func Parse(in string) (*PatternSchema, error) {
 		case DefaultStartParam:
 
 			// invalid input string if after end border of parameter got new parameter
-			if i-end == 0 {
+			if i > 0 && i-end == 0 {
 				return nil, fmt.Errorf("should be a pattern between the parameters, pos %d", i)
 			}
 
@@ -104,9 +104,20 @@ func Parse(in string) (*PatternSchema, error) {
 }
 
 // Lookup returns list params if input string matched to schema.
+//
+// NOTE: nothing (empty list of tokens) not matches to anything.
 func (s *PatternSchema) Lookup(in string) (bool, Params) {
+	if s == nil {
+		return false, nil
+	}
+
 	params := getListParams()
 	defer putListParams(params)
+
+	if len(s.Tokens) == 0 {
+		// nothing not matches to anything
+		return false, nil
+	}
 
 	// this is the sum of the lengths of the patterns and found value of parameters
 	var offset int
@@ -119,10 +130,7 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 		switch t.Mode {
 		case BEGINLINE:
 		case ENDLINE:
-			if offset < len(in) {
-				// have tail without pattern
-				return false, nil
-			}
+			goto exitloop
 		case PARAMETER_PARSED:
 			params = append(params, Param{
 				Name:  t.ParamName(),
@@ -157,14 +165,24 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 				// add the length of the pattern
 				offset += t.Len
 			} else {
+				// forced return because pattern is not matched
 				return false, nil
 			}
 		}
 	}
 
+exitloop:
+
+	// offset did not seeking to end of by input value
+	if len(in) != offset {
+		return false, nil
+	}
+
+	// received an unexpected number of parameters
 	if len(params) != s.NumParams {
 		return false, nil
 	}
+
 	return true, params
 }
 

@@ -8,6 +8,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var basicCases = []struct {
+	name    string
+	pattern string
+	in      string
+	want    Params
+	found   bool
+	wantErr bool
+}{
+	{"empty", "", "", Params{}, true, false},
+	{"empty", "", "qwe", nil, false, false},
+	{"empty", "qwe", "", nil, false, false},
+	{"empty", "qwe", "qwe", Params{}, true, false},
+	{"empty", "qwe", "qwe123", nil, false, false},
+	{"empty", "qwe", "123qwe", nil, false, false},
+	{"empty", "qwe", "qw123e", nil, false, false},
+	{"allAsParam", "{qwe}", "123", Params{{"qwe", "123"}}, true, false},
+	{"allAsParam", "{qwe}", "", Params{{"qwe", ""}}, true, false},
+	{"onlyTwoParams", "{foo}{bar}", "", nil, false, true},
+	{"onlyTwoParams", "{foo}{bar}", "123", nil, false, true},
+	{"onlyTwoParams", "foo{foo}{bar}", "foo123", nil, false, true},
+	{"onlyTwoParams", "{foo}foo{bar}", "123foo", Params{{"foo", "123"}, {"bar", ""}}, true, false},
+	{"onlyTwoParams", "{foo}foo{bar}", "foo456", Params{{"foo", ""}, {"bar", "456"}}, true, false},
+	{"withoutParams", "foobar", "foo123bar", nil, false, false},
+	{"simple1", "foo{p1}bar", "foo123bar", Params{{"p1", "123"}}, true, false},
+	{"simple1-empytparamvalue", "foo{p1}bar", "foobar", Params{{"p1", ""}}, true, false},
+	{"utf8pattern", "foo{p1}日本語{p2}baz", "fooAAA日本語BBBbaz", Params{{"p1", "AAA"}, {"p2", "BBB"}}, true, false},
+	{"utf8param", "foo{p1}bar{p2}baz", "foo日本語barСЫРbaz", Params{{"p1", "日本語"}, {"p2", "СЫР"}}, true, false},
+	{"issues#1", "#snippet-{boundary}", "foobar", nil, false, false},
+	{"issues#1", "verylongpattern-{p1}", "smallinput", nil, false, false},
+	{"issues#2", "{v1}fooobar{v2}", "1fooobar2", Params{{"v1", "1"}, {"v2", "2"}}, true, false},
+	{"issues#2", "{v1}fooobar{v2}", "1fooobar", Params{{"v1", "1"}, {"v2", ""}}, true, false},
+	{"issues#2", "{v1}fooobar", "111fooobar", Params{{"v1", "111"}}, true, false},
+	{"issues#2", "{v1}fooobar", "fooobar", Params{{"v1", ""}}, true, false},
+	{"issues#2", "fooobar{v2}", "fooobar222", Params{{"v2", "222"}}, true, false},
+	{"issues#2", "fooobar{v2}", "fooobar", Params{{"v2", ""}}, true, false},
+}
+
 func TestParse(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -16,17 +53,11 @@ func TestParse(t *testing.T) {
 		want    Params
 		found   bool
 		wantErr bool
-	}{
-		{"empty", "", "", Params{}, true, false},
-		{"withoutParams", "foobar", "foo123bar", nil, false, false},
-		{"simple1", "foo{p1}bar", "foo123bar", Params{{"p1", "123"}}, true, false},
-		{"utf8pattern", "foo{p1}日本語{p2}baz", "fooAAA日本語BBBbaz", Params{{"p1", "AAA"}, {"p2", "BBB"}}, true, false},
-		{"utf8param", "foo{p1}bar{p2}baz", "foo日本語barСЫРbaz", Params{{"p1", "日本語"}, {"p2", "СЫР"}}, true, false},
-		{"issues#1", "#snippet-{boundary}", "foobar", nil, false, false},
-		{"issues#1", "verylongpattern-{p1}", "smallinput", nil, false, false},
-	}
+	}(basicCases)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("[INFO] pattern = %q, input = %q", tt.pattern, tt.in)
+
 			schema, err := Parse(tt.pattern)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
@@ -41,6 +72,20 @@ func TestParse(t *testing.T) {
 			}
 		})
 	}
+}
+func TestParseAndLookup_EmptySchema(t *testing.T) {
+	s := &PatternSchema{Tokens: []Token{}, NumParams: 0}
+	t.Run("empty", func(t *testing.T) {
+		found, params := s.Lookup("")
+		assert.False(t, found)
+		assert.Empty(t, params)
+	})
+	t.Run("anything", func(t *testing.T) {
+		found, params := s.Lookup("123")
+		assert.False(t, found)
+		assert.Empty(t, params)
+	})
+
 }
 
 func TestDemoRegexp(t *testing.T) {
