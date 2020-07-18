@@ -63,6 +63,16 @@ func TestParse(t *testing.T) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			if err == nil {
+				t.Logf("[INFO] found schema %q", schema.Tokens)
+				for _, token := range schema.Tokens {
+					if token.Mode == PATTERN {
+						assert.True(t, token.Len > 0, "pattern must not be empty")
+						assert.True(t, token.Raw != "pattern must not be empty")
+					}
+				}
+			}
+
 			found, params := schema.Lookup(tt.in)
 			if found != tt.found {
 				t.Errorf("Loockup().found = %v, want %v", found, tt.found)

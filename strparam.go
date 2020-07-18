@@ -1,6 +1,7 @@
 package strparam
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"unicode/utf8"
@@ -43,11 +44,15 @@ func Parse(in string) (*PatternSchema, error) {
 				return nil, fmt.Errorf("should be a pattern between the parameters, pos %d", i)
 			}
 
-			tokens = append(tokens, Token{
-				Mode: PATTERN,
-				Len:  i - end,
-				Raw:  in[end:i],
-			})
+			if i-end > 0 {
+				// skip empty pattern
+				// - at beginning of the input string the parameter
+				tokens = append(tokens, Token{
+					Mode: PATTERN,
+					Len:  i - end,
+					Raw:  in[end:i],
+				})
+			}
 
 			mode = PARAMETER
 			start = i // sets start position of parameter
@@ -188,8 +193,21 @@ exitloop:
 
 type PatternSchema struct {
 	Pattern   string
-	Tokens    []Token
+	Tokens    Tokens
 	NumParams int
+}
+
+type Tokens []Token
+
+func (t Tokens) String() string {
+	res := new(bytes.Buffer)
+	for i, token := range t {
+		if i > 0 {
+			fmt.Fprint(res, "->")
+		}
+		fmt.Fprint(res, token.String())
+	}
+	return res.String()
 }
 
 type Param struct {
