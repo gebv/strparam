@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var basicCases = []struct {
@@ -85,12 +86,29 @@ func TestParse(t *testing.T) {
 }
 func TestParseAndLookup_EmptySchema(t *testing.T) {
 	s := &PatternSchema{Tokens: []Token{}, NumParams: 0}
-	t.Run("empty", func(t *testing.T) {
+	t.Run("emptyListTokensNotMatchedInEmpty", func(t *testing.T) {
 		found, params := s.Lookup("")
 		assert.False(t, found)
 		assert.Empty(t, params)
 	})
-	t.Run("anything", func(t *testing.T) {
+	t.Run("emptyListTokensNotMatchedInAnything", func(t *testing.T) {
+		found, params := s.Lookup("123")
+		assert.False(t, found)
+		assert.Empty(t, params)
+	})
+
+	s, err := Parse("")
+	require.NoError(t, err)
+	require.Len(t, s.Tokens, 2)
+	require.Equal(t, s.Tokens[0].Mode, BEGINLINE)
+	require.Equal(t, s.Tokens[1].Mode, ENDLINE)
+
+	t.Run("emptySchemaMatchedInEmpty", func(t *testing.T) {
+		found, params := s.Lookup("")
+		assert.True(t, found)
+		assert.Empty(t, params)
+	})
+	t.Run("emptySchemaNotMatchedInAnything", func(t *testing.T) {
 		found, params := s.Lookup("123")
 		assert.False(t, found)
 		assert.Empty(t, params)
