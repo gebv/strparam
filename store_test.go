@@ -55,7 +55,7 @@ func Test_StoreSingle_FindAndLookup(t *testing.T) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			t.Logf("[INFO] found schema %q", schema.Tokens)
+			t.Log("[INFO] found schema:", schema)
 
 			found, params := schema.Lookup(tt.in)
 			if found != tt.found {

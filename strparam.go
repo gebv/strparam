@@ -101,7 +101,6 @@ func Parse(in string) (*PatternSchema, error) {
 	})
 
 	return &PatternSchema{
-		Pattern:   in,
 		Tokens:    tokens,
 		NumParams: numParams,
 	}, nil
@@ -191,9 +190,12 @@ exitloop:
 }
 
 type PatternSchema struct {
-	Pattern   string
 	Tokens    Tokens
 	NumParams int
+}
+
+func (s PatternSchema) String() string {
+	return s.Tokens.String()
 }
 
 type Param struct {

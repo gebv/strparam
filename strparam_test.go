@@ -19,32 +19,91 @@ var basicCases = []struct {
 }{
 	{"empty", "", "", Params{}, true, false},
 	{"empty", "", "qwe", nil, false, false},
-	{"empty", "qwe", "", nil, false, false},
-	{"empty", "qwe", "qwe", Params{}, true, false},
-	{"empty", "qwe", "qwe123", nil, false, false},
-	{"empty", "qwe", "123qwe", nil, false, false},
-	{"empty", "qwe", "qw123e", nil, false, false},
-	{"allAsParam", "{qwe}", "123", Params{{"qwe", "123"}}, true, false},
-	{"", "{qwe}foobar", "", nil, false, false},
-	{"allAsParam", "{qwe}", "", Params{{"qwe", ""}}, true, false},
-	{"onlyTwoParams", "{foo}{bar}", "", nil, false, true},
-	{"onlyTwoParams", "{foo}{bar}", "123", nil, false, true},
-	{"onlyTwoParams", "foo{foo}{bar}", "foo123", nil, false, true},
-	{"onlyTwoParams", "{foo}foo{bar}", "123foo", Params{{"foo", "123"}, {"bar", ""}}, true, false},
-	{"onlyTwoParams", "{foo}foo{bar}", "foo456", Params{{"foo", ""}, {"bar", "456"}}, true, false},
-	{"withoutParams", "foobar", "foo123bar", nil, false, false},
-	{"simple1", "foo{p1}bar", "foo123bar", Params{{"p1", "123"}}, true, false},
-	{"simple1-empytparamvalue", "foo{p1}bar", "foobar", Params{{"p1", ""}}, true, false},
+
+	{"p", "qwe", "", nil, false, false},
+	{"p", "qwe", "qwe", Params{}, true, false},
+	{"p", "qwe", "qwe123", nil, false, false},
+	{"p", "qwe", "123qwe", nil, false, false},
+	{"p", "qwe", "qw123e", nil, false, false},
+
+	{"{}", "{qwe}", "123", Params{{"qwe", "123"}}, true, false},
+	{"{}", "{qwe}", "", Params{{"qwe", ""}}, true, false},
+
+	{"{}p", "{qwe}foo", "", nil, false, false},
+	{"{}p", "{qwe}foo", "123", nil, false, false},
+	{"{}p", "{qwe}foo", "123foo", Params{{"qwe", "123"}}, true, false},
+	{"{}p", "{qwe}foo", "123foo123", nil, false, false},
+	{"{}p", "{qwe}foo", "foo123", nil, false, false},
+	{"{}p", "{qwe}foo", "foo", Params{{"qwe", ""}}, true, false},
+
+	{"p{}", "foo{qwe}", "", nil, false, false},
+	{"p{}", "foo{qwe}", "123", nil, false, false},
+	{"p{}", "foo{qwe}", "foo123", Params{{"qwe", "123"}}, true, false},
+	{"p{}", "foo{qwe}", "123foo123", nil, false, false},
+	{"p{}", "foo{qwe}", "123foo", nil, false, false},
+	{"p{}", "foo{qwe}", "foo", Params{{"qwe", ""}}, true, false},
+
+	{"p{}p", "foo{qwe}bar", "", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "foo", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "bar", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "barfoo", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "barfoo123", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "foo123", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "123bar", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "foobar", Params{{"qwe", ""}}, true, false},
+	{"p{}p", "foo{qwe}bar", "foo123bar", Params{{"qwe", "123"}}, true, false},
+	{"p{}p", "foo{qwe}bar", "123foo123bar", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "foo123bar123", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "foobar123", nil, false, false},
+	{"p{}p", "foo{qwe}bar", "123foobar", nil, false, false},
+
 	{"utf8pattern", "foo{p1}日本語{p2}baz", "fooAAA日本語BBBbaz", Params{{"p1", "AAA"}, {"p2", "BBB"}}, true, false},
 	{"utf8param", "foo{p1}bar{p2}baz", "foo日本語barСЫРbaz", Params{{"p1", "日本語"}, {"p2", "СЫР"}}, true, false},
-	{"issues#1", "#snippet-{boundary}", "foobar", nil, false, false},
-	{"issues#1", "verylongpattern-{p1}", "smallinput", nil, false, false},
-	{"issues#2", "{v1}fooobar{v2}", "1fooobar2", Params{{"v1", "1"}, {"v2", "2"}}, true, false},
-	{"issues#2", "{v1}fooobar{v2}", "1fooobar", Params{{"v1", "1"}, {"v2", ""}}, true, false},
-	{"issues#2", "{v1}fooobar", "111fooobar", Params{{"v1", "111"}}, true, false},
-	{"issues#2", "{v1}fooobar", "fooobar", Params{{"v1", ""}}, true, false},
-	{"issues#2", "fooobar{v2}", "fooobar222", Params{{"v2", "222"}}, true, false},
-	{"issues#2", "fooobar{v2}", "fooobar", Params{{"v2", ""}}, true, false},
+
+	{"invalidParse", "{foo}{bar}", "", nil, false, true},
+	{"invalidParse", "{foo}{bar}", "", nil, false, true},
+	{"invalidParse", "{}{bar}", "", nil, false, true},
+	{"invalidParse", "{foo}{bar", "", nil, false, true},
+	{"invalidParse", "{foo}{", "", nil, false, true},
+	{"invalidParse", "{foo}{{", "", nil, false, true},
+	{"invalidParse", "{foo}{}", "", nil, false, true},
+	{"invalidParse", "{}{}", "", nil, false, true},
+	{"invalidParse", "{", "", nil, false, true},
+	{"invalidParse", "{{}", "", nil, false, true},
+
+	{"{}p{}", "{p1}qw{p2}", "", nil, false, false},
+	{"{}p{}", "{p1}qw{p2}", "123", nil, false, false},
+	{"{}p{}", "{p1}qw{p2}", "q", nil, false, false},
+	{"{}p{}", "{p1}qw{p2}", "w", nil, false, false},
+	{"{}p{}", "{p1}qw{p2}", "qw", Params{{"p1", ""}, {"p2", ""}}, true, false},
+	{"{}p{}", "{p1}qw{p2}", "qw123", Params{{"p1", ""}, {"p2", "123"}}, true, false},
+	{"{}p{}", "{p1}qw{p2}", "w123", nil, false, false},
+	{"{}p{}", "{p1}qw{p2}", "qw123456", Params{{"p1", ""}, {"p2", "123456"}}, true, false},
+	{"{}p{}", "{p1}qw{p2}", "123qw", Params{{"p1", "123"}, {"p2", ""}}, true, false},
+	{"{}p{}", "{p1}qw{p2}", "123q", nil, false, false},
+	{"{}p{}", "{p1}qw{p2}", "456123qw", Params{{"p1", "456123"}, {"p2", ""}}, true, false},
+
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foo", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foobaz", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "bar", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "barbaz", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foobar", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foobarbaz", Params{{"p1", ""}, {"p2", ""}}, true, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foo123barbaz", Params{{"p1", "123"}, {"p2", ""}}, true, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foo123bar456baz", Params{{"p1", "123"}, {"p2", "456"}}, true, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foo123bar456baz789", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foobar456baz789", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "foobarbaz789", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "456foo123bar456baz", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "456foo123barbaz", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "456foobarbaz", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "456foobarbaz123", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "456foo123barbaz123", nil, false, false},
+	{"p{}p{}p", "foo{p1}bar{p2}baz", "456foo123bar123baz123", nil, false, false},
+
+	// https://github.com/gebv/strparam/issues/3
+	{"issues#3", "{{bar}", "{123", Params{{"bar", "123"}}, true, false},
 }
 
 func Test_Parse(t *testing.T) {
@@ -66,7 +125,7 @@ func Test_Parse(t *testing.T) {
 				return
 			}
 			if err == nil {
-				t.Logf("[INFO] found schema %q", schema.Tokens)
+				t.Log("[INFO] found schema:", schema)
 				for _, token := range schema.Tokens {
 					if token.Mode == PATTERN {
 						assert.True(t, token.Len > 0, "pattern must not be empty")
