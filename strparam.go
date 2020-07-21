@@ -6,10 +6,21 @@ import (
 	"unicode/utf8"
 )
 
+// ParseWithName analyzes the pattern, split it into tokens. Saves the schema name.
+//
+// Iterate over the UTF-8 characters (with correct offset of bytes).
+func ParseWithName(name, in string) (*PatternSchema, error) {
+	return parse(name, in)
+}
+
 // Parse analyzes the pattern, split it into tokens.
 //
 // Iterate over the UTF-8 characters (with correct offset of bytes).
 func Parse(in string) (*PatternSchema, error) {
+	return parse("", in)
+}
+
+func parse(schemaName, in string) (*PatternSchema, error) {
 	tokens := getlistTokens()
 	defer putlistTokens(tokens)
 
@@ -22,7 +33,7 @@ func Parse(in string) (*PatternSchema, error) {
 	// number of parameters
 	var numParams int
 
-	// end of input string
+	// start of input string
 	tokens = append(tokens, Token{
 		Mode: BEGINLINE,
 	})
@@ -95,9 +106,10 @@ func Parse(in string) (*PatternSchema, error) {
 		}
 	}
 
-	// start of input string
+	// end of input string
 	tokens = append(tokens, Token{
 		Mode: ENDLINE,
+		Raw:  schemaName,
 	})
 
 	return &PatternSchema{
@@ -196,6 +208,21 @@ type PatternSchema struct {
 
 func (s PatternSchema) String() string {
 	return s.Tokens.String()
+}
+
+// Name returns name of schema (by end token).
+func (s PatternSchema) Name() string {
+	if s.Tokens == nil {
+		return ""
+	}
+	if len(s.Tokens) <= 1 {
+		return ""
+	}
+	endToken := s.Tokens[len(s.Tokens)-1]
+	if endToken.Mode != ENDLINE {
+		return ""
+	}
+	return endToken.Raw
 }
 
 type Param struct {
