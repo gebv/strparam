@@ -1,6 +1,7 @@
 package strparam
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode/utf8"
@@ -9,25 +10,29 @@ import (
 // ParseWithName analyzes the pattern, split it into tokens. Saves the schema name.
 //
 // Iterate over the UTF-8 characters (with correct offset of bytes).
-func ParseWithName(name, in string) (*PatternSchema, error) {
-	return parse(name, in)
+func ParseWithName(name, exp string) (*Pattern, error) {
+	return parse(name, exp)
 }
 
 // Parse analyzes the pattern, split it into tokens.
 //
 // Iterate over the UTF-8 characters (with correct offset of bytes).
-func Parse(in string) (*PatternSchema, error) {
-	return parse("", in)
+func Parse(exp string) (*Pattern, error) {
+	return parse("", exp)
 }
 
-func parse(schemaName, in string) (*PatternSchema, error) {
+func parse(patternName, exp string) (*Pattern, error) {
+	if exp == "" {
+		return nil, errors.New("expression should not is empty")
+	}
+
 	tokens := getlistTokens()
 	defer putlistTokens(tokens)
 
 	// end and start of parameter positions in bytes
 	var start, end int = 0, 0
 	// current mode (initial as Pattern)
-	var mode TokenMode = PATTERN
+	var mode TokenMode = CONST
 	// is flag of start char of input string
 	var EOF bool
 	// number of parameters
@@ -35,16 +40,16 @@ func parse(schemaName, in string) (*PatternSchema, error) {
 
 	// start of input string
 	tokens = append(tokens, Token{
-		Mode: BEGINLINE,
+		Mode: START,
 	})
 
 	// current UTF-8 character in a word
 	var char rune
 
 	// w - character width in bytes
-	for i, w := 0, 0; i < len(in); i += w {
-		char, w = utf8.DecodeRuneInString(in[i:])
-		EOF = i == len(in)-1
+	for i, w := 0, 0; i < len(exp); i += w {
+		char, w = utf8.DecodeRuneInString(exp[i:])
+		EOF = i == len(exp)-1
 
 		switch char {
 		case DefaultStartParam:
@@ -58,9 +63,9 @@ func parse(schemaName, in string) (*PatternSchema, error) {
 				// skip empty pattern
 				// - at beginning of the input string the parameter
 				tokens = append(tokens, Token{
-					Mode: PATTERN,
+					Mode: CONST,
 					Len:  i - end,
-					Raw:  in[end:i],
+					Raw:  exp[end:i],
 				})
 			}
 
@@ -79,10 +84,10 @@ func parse(schemaName, in string) (*PatternSchema, error) {
 
 			tokens = append(tokens, Token{
 				Mode: PARAMETER,
-				Raw:  in[start : i+1],
+				Raw:  exp[start : i+1],
 			})
 
-			mode = PATTERN
+			mode = CONST
 			end, start = i+1, i+1 // zeroing positions
 			numParams++
 		}
@@ -93,13 +98,13 @@ func parse(schemaName, in string) (*PatternSchema, error) {
 				return nil, fmt.Errorf("parameter was not closed, pos %d", i)
 			}
 
-			if mode == PATTERN {
+			if mode == CONST {
 				// if exists chars after closed parameter
 				if i+1-end > 0 {
 					tokens = append(tokens, Token{
-						Mode: PATTERN,
+						Mode: CONST,
 						Len:  i + 1 - end,
-						Raw:  in[end : i+1],
+						Raw:  exp[end : i+1],
 					})
 				}
 			}
@@ -108,11 +113,11 @@ func parse(schemaName, in string) (*PatternSchema, error) {
 
 	// end of input string
 	tokens = append(tokens, Token{
-		Mode: ENDLINE,
-		Raw:  schemaName,
+		Mode: END,
+		Raw:  patternName,
 	})
 
-	return &PatternSchema{
+	return &Pattern{
 		Tokens:    tokens,
 		NumParams: numParams,
 	}, nil
@@ -121,7 +126,7 @@ func parse(schemaName, in string) (*PatternSchema, error) {
 // Lookup returns list params if input string matched to schema.
 //
 // NOTE: nothing (empty list of tokens) not matches to anything.
-func (s *PatternSchema) Lookup(in string) (bool, Params) {
+func (s *Pattern) Lookup(in string) (bool, Params) {
 	if s == nil {
 		return false, nil
 	}
@@ -143,8 +148,8 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 		}
 
 		switch t.Mode {
-		case BEGINLINE:
-		case ENDLINE:
+		case START:
+		case END:
 			goto exitloop
 		case PARAMETER_PARSED:
 			params = append(params, Param{
@@ -155,13 +160,13 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 		case PARAMETER:
 			_next := s.Tokens[num+1]
 			switch _next.Mode {
-			case ENDLINE:
+			case END:
 				params = append(params, Param{
 					Name:  t.ParamName(),
 					Value: in[offset:],
 				})
 				offset += len(in) - offset
-			case PATTERN:
+			case CONST:
 				if found := strings.Index(in[offset:], _next.Raw); found > -1 {
 					params = append(params, Param{
 						Name:  t.ParamName(),
@@ -175,7 +180,7 @@ func (s *PatternSchema) Lookup(in string) (bool, Params) {
 			default:
 				return false, nil
 			}
-		case PATTERN:
+		case CONST:
 			if in[offset:offset+t.Len] == t.Raw {
 				// add the length of the pattern
 				offset += t.Len
@@ -201,17 +206,18 @@ exitloop:
 	return true, params
 }
 
-type PatternSchema struct {
+type Pattern struct {
 	Tokens    Tokens
 	NumParams int
 }
 
-func (s PatternSchema) String() string {
+// String returns schema of pattern.
+func (s Pattern) String() string {
 	return s.Tokens.String()
 }
 
-// Name returns name of schema (by end token).
-func (s PatternSchema) Name() string {
+// Name returns name of pattern (by end token if sets).
+func (s Pattern) Name() string {
 	if s.Tokens == nil {
 		return ""
 	}
@@ -219,7 +225,7 @@ func (s PatternSchema) Name() string {
 		return ""
 	}
 	endToken := s.Tokens[len(s.Tokens)-1]
-	if endToken.Mode != ENDLINE {
+	if endToken.Mode != END {
 		return ""
 	}
 	return endToken.Raw
