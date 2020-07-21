@@ -1,6 +1,9 @@
 package strparam
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 var DefaultStartParam = '{'
 var DefaultEndParam = '}'
@@ -8,7 +11,8 @@ var DefaultEndParam = '}'
 type Token struct {
 	Mode TokenMode
 	// len of bytes
-	Len   int
+	Len int
+	// multifunctional field
 	Raw   string
 	Param *Token
 }
@@ -21,13 +25,19 @@ func (t *Token) String() string {
 	switch t.Mode {
 	case UNKNOWN_TokenMode:
 		return ""
-	case PATTERN:
-		return fmt.Sprintf("Pattern(%q, len=%d)", t.Raw, t.Len)
+	case CONST:
+		return fmt.Sprintf("Const(%q, len=%d)", t.Raw, t.Len)
 	case PARAMETER:
-		return fmt.Sprintf("Parameter(%q)", t.Raw)
-	case BEGINLINE:
+		return fmt.Sprintf("Param(%q)", t.Raw)
+	case PARAMETER_PARSED:
+		return fmt.Sprintf("ParsedParam(%s=%q)", t.ParamName(), t.Raw)
+	case START:
 		return fmt.Sprintf("START")
-	case ENDLINE:
+	case END:
+		if t.Raw != "" {
+			// named token
+			return fmt.Sprintf("END(%q)", t.Raw)
+		}
 		return fmt.Sprintf("END")
 	}
 
@@ -46,18 +56,41 @@ func (t *Token) ParamName() string {
 	return ""
 }
 
+type Tokens []Token
+
+func (t Tokens) String() string {
+	res := new(bytes.Buffer)
+	for i, token := range t {
+		if i > 0 {
+			fmt.Fprint(res, "->")
+		}
+		fmt.Fprint(res, token.String())
+	}
+	return res.String()
+}
+
+var (
+	StartToken  = Token{Mode: START}
+	EndToken    = Token{Mode: END}
+	EmptySchema = Tokens{StartToken, EndToken}
+)
+
 type TokenMode int
 
 func (m TokenMode) String() string {
 	switch m {
-	case PATTERN:
-		return "pattern"
+	case CONST:
+		return "const"
+	case UNKNOWN_TokenMode:
+		return "empty_token?"
 	case PARAMETER:
-		return "parameter"
-	case BEGINLINE:
+		return "param"
+	case START:
 		return "begin"
-	case ENDLINE:
+	case END:
 		return "end"
+	case PARAMETER_PARSED:
+		return "parsed_param"
 	}
 
 	return fmt.Sprintf("TokenMode(%d)", m)
@@ -65,14 +98,41 @@ func (m TokenMode) String() string {
 
 const (
 	UNKNOWN_TokenMode TokenMode = 0
-	// PATTERN boarder of pattern
-	PATTERN TokenMode = 1
+	// CONST boarder of pattern
+	CONST TokenMode = 1
 	// PARAMETER boarder of parameter
 	PARAMETER TokenMode = 2
-	// BEGINLINE marker of begin line
-	BEGINLINE TokenMode = 4
-	// ENDLINE marker of end line
-	ENDLINE TokenMode = 5
+	// START marker of begin line
+	START TokenMode = 4
+	// END marker of end line
+	END TokenMode = 5
 	// PARAMETER_PARSED with known offsets
 	PARAMETER_PARSED TokenMode = 6
 )
+
+func ConstToken(in string) Token {
+	return Token{
+		Mode: CONST,
+		Len:  len(in),
+		Raw:  in,
+	}
+}
+
+func ParameterToken(rawName string) Token {
+	return Token{
+		Mode: PARAMETER,
+		Raw:  string(DefaultStartParam) + rawName + string(DefaultEndParam),
+	}
+}
+
+func ParsedParameterToken(rawName, val string) Token {
+	return Token{
+		Mode: PARAMETER_PARSED,
+		Raw:  val,
+		Len:  len(val),
+		Param: &Token{
+			Mode: PARAMETER,
+			Raw:  string(DefaultStartParam) + rawName + string(DefaultEndParam),
+		},
+	}
+}
