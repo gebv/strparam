@@ -33,6 +33,10 @@ func (t *Token) String() string {
 	case BEGINLINE:
 		return fmt.Sprintf("START")
 	case ENDLINE:
+		if t.Raw != "" {
+			// named token
+			return fmt.Sprintf("END(%q)", t.Raw)
+		}
 		return fmt.Sprintf("END")
 	}
 
@@ -64,7 +68,11 @@ func (t Tokens) String() string {
 	return res.String()
 }
 
-var StartEndTokens = Tokens{{Mode: BEGINLINE}, {Mode: ENDLINE}}
+var (
+	StartToken  = Token{Mode: BEGINLINE}
+	EndToken    = Token{Mode: ENDLINE}
+	EmptySchema = Tokens{StartToken, EndToken}
+)
 
 type TokenMode int
 
@@ -100,3 +108,18 @@ const (
 	// PARAMETER_PARSED with known offsets
 	PARAMETER_PARSED TokenMode = 6
 )
+
+func PatternToken(in string) Token {
+	return Token{
+		Mode: PATTERN,
+		Len:  len(in),
+		Raw:  in,
+	}
+}
+
+func ParameterToken(rawName string) Token {
+	return Token{
+		Mode: PARAMETER,
+		Raw:  string(DefaultStartParam) + rawName + string(DefaultEndParam),
+	}
+}
