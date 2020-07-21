@@ -60,7 +60,7 @@ found, params := s.Lookup(in)
 // true [{Name:p1 Value:bar} {Name:p2 Value:日本語}]
 ```
 
-[On the playground](https://play.golang.org/p/wOS1TUMnl38)
+[On the playground](https://play.golang.org/p/qsj5fNJfPvO)
 
 ## Multiple pattern match
 
@@ -73,7 +73,7 @@ r.Add("foo1{p3}foo1{p4}golang")
 
 in := "foo1XXXfoo1YYYgolang"
 
-schema, _ := r.Find(in)
+schema := r.Find(in)
 found, params := schema.Lookup(in)
 ```
 
@@ -86,7 +86,7 @@ BenchmarkStore_Lookup_2_102
 BenchmarkStore_Lookup_2_102-4              	  108709	     12170 ns/op	     160 B/op	       2 allocs/op
 ```
 
-[On the playground](https://play.golang.org/p/h6u4BHGTsa0)
+[On the playground](https://play.golang.org/p/qmHhv_b_1pj)
 
 ## Guide
 
@@ -118,7 +118,7 @@ func main() {
 
 ```
 
-[On the playground](https://play.golang.org/p/wOS1TUMnl38)
+[On the playground](https://play.golang.org/p/dll0rZYYAlP)
 
 ## How does it work?
 
