@@ -9,36 +9,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_StoreSingle_Empty(t *testing.T) {
+func Test_StoreSingle_ExtendsBasicTests(t *testing.T) {
 	tests := []struct {
 		pattern    string
 		in         string
-		wantToknes Tokens
+		found      bool
+		wantTokens Tokens
 	}{
-		// {"", "", Tokens{}},
-		// {"", "123", Tokens{}},
-		// {"123", "", Tokens{}},
-		// {"foobar{param}", "", Tokens{}},
-		{"{param}foobar", "foobars", Tokens{}},
-		// {"foo{param}bar", "", Tokens{}},
-		// {"{param}", "", Tokens{StartEndTokens[0], Token{Mode: PARAMETER_PARSED, Param: &Token{Mode: PARAMETER, Raw: "{param}"}}, StartEndTokens[1]}},
+		{"", "", false, nil},
+		{"", "123", false, nil},
+		{"123", "", false, nil},
+		{"foobar{param}", "", false, nil},
+		{"foobar{param}", "123foobar", false, nil},
+		{"{param}foobar", "foobar123", false, nil},
+		{"foo{param}bar", "", false, nil},
+		{"foo{param}bar", "123foobar", false, nil},
+		{"foo{param}bar", "foobar123", false, nil},
+		{"{param}", "", true, Tokens{StartToken, ParsedParameterToken("param", ""), EndToken}},
+		{"{param}", "123", true, Tokens{StartToken, ParsedParameterToken("param", "123"), EndToken}},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%q->%q", tt.pattern, tt.in), func(t *testing.T) {
 			s := NewStore()
 			s.Add(tt.pattern)
 			t.Log("[INFO] store", s.String())
-			schema, err := s.Find(tt.in)
-			require.NoError(t, err)
-			require.EqualValues(t, tt.wantToknes, schema.Tokens)
+			foundSchema := s.Find(tt.in)
+			if tt.found {
+				require.NotEmpty(t, foundSchema)
+				require.EqualValues(t, tt.wantTokens, foundSchema.Tokens)
+			} else {
+				require.Empty(t, foundSchema)
+			}
 		})
 	}
 }
 
-func Test_StoreSingle_FindAndLookup(t *testing.T) {
+func Test_StoreSingle_BasicTests(t *testing.T) {
 	// result should be the same as in the case Parse and Loockup for same pattern
 
-	tests := basicCases
+	tests := patternBasicCases
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s: %q->%q", tt.name, tt.pattern, tt.in), func(t *testing.T) {
 			if tt.wantErr {
@@ -50,11 +59,8 @@ func Test_StoreSingle_FindAndLookup(t *testing.T) {
 			s := NewStore()
 			s.Add(tt.pattern)
 
-			schema, err := s.Find(tt.in)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			schema := s.Find(tt.in)
+			// TODO: check if found
 			t.Log("[INFO] found schema:", schema)
 
 			found, params := schema.Lookup(tt.in)
@@ -70,13 +76,16 @@ func Test_StoreSingle_FindAndLookup(t *testing.T) {
 
 func Test_StoreMultiple(t *testing.T) {
 	s := NewStore()
-	s.Add("foo2{p1}foo2{p2}golang")
-	s.Add("foo1{p3}foo1{p4}golang")
-	s.Add("abc{p5}def{p6}golang")
+	err := s.Add("foo2{p1}foo2{p2}golang")
+	require.NoError(t, err)
+	err = s.Add("foo1{p3}foo1{p4}golang")
+	require.NoError(t, err)
+	err = s.Add("abc{p5}def{p6}golang")
+	require.NoError(t, err)
 	t.Log(s.String())
 	in := "foo1XXXfoo1YYYgolang"
-	schema, err := s.Find(in)
-	assert.NoError(t, err)
+	schema := s.Find(in)
+	require.NotEmpty(t, schema)
 	t.Log(schema.Tokens.String())
 }
 
@@ -97,8 +106,7 @@ func Test_Store_ManySimilarPatterns(t *testing.T) {
 
 	in := "foo1XXXfoo1YYYgolang"
 
-	schema, err := r.Find(in)
-	assert.NoError(t, err)
+	schema := r.Find(in)
 	assert.Len(t, schema.Tokens, 7)
 	found, params := schema.Lookup(in)
 
@@ -106,7 +114,7 @@ func Test_Store_ManySimilarPatterns(t *testing.T) {
 	assert.EqualValues(t, Params{{"p3", "XXX"}, {"p4", "YYY"}}, params)
 }
 
-func BenchmarkStore_Lookup_2_2(b *testing.B) {
+func Benchmark_Store_Lookup_2_2(b *testing.B) {
 	r := NewStore()
 	r.Add("foo2{p1}foo2{p2}golang")
 	r.Add("foo1{p3}foo1{p4}golang")
@@ -119,7 +127,7 @@ func BenchmarkStore_Lookup_2_2(b *testing.B) {
 	}
 }
 
-func BenchmarkStore_Lookup_2_102(b *testing.B) {
+func Benchmark_Store_Lookup_2_102(b *testing.B) {
 	r := NewStore()
 
 	for i := 0; i < 100; i++ {
