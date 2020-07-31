@@ -84,6 +84,11 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 		case CONST:
 			if offset <= len(in) && offset+node.Token.Len <= len(in) {
 				if in[offset:offset+node.Token.Len] == node.Token.Raw {
+					if isEndBranche(node) && len(in) != offset+node.Token.Len {
+						// go to next child for current level if the branch ended and not matched lengths for cursor and input value
+						continue
+					}
+
 					*res = append(*res, node.Token)
 
 					// jump into the branch
@@ -119,6 +124,13 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 			panic(fmt.Sprintf("not supported token type %v", node.Token.Mode))
 		}
 	}
+}
+
+func isEndBranche(node *node) bool {
+	if len(node.Childs) == 1 {
+		return node.Childs[0].Token.Mode == END
+	}
+	return false
 }
 
 func lookupNextPattern(in string, offset int, param *node) (*node, int) {
