@@ -76,11 +76,11 @@ func Test_StoreSingle_BasicTests(t *testing.T) {
 
 func Test_StoreMultiple(t *testing.T) {
 	s := NewStore()
-	err := s.Add("foo2{p1}foo2{p2}golang")
+	_, err := s.Add("foo2{p1}foo2{p2}golang")
 	require.NoError(t, err)
-	err = s.Add("foo1{p3}foo1{p4}golang")
+	_, err = s.Add("foo1{p3}foo1{p4}golang")
 	require.NoError(t, err)
-	err = s.Add("abc{p5}def{p6}golang")
+	_, err = s.Add("abc{p5}def{p6}golang")
 	require.NoError(t, err)
 	t.Log(s.String())
 	in := "foo1XXXfoo1YYYgolang"

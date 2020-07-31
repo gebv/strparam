@@ -18,20 +18,22 @@ func NewStore() *Store {
 	}
 }
 
-// Add add new pattern.
-func (r *Store) Add(exp string) error {
+// Add returns parsed and added pattern from input value.
+//
+// Error is returned if parsing error.
+func (r *Store) Add(exp string) (*Pattern, error) {
 	return r.add("", exp)
 }
 
 // AddNamed add named new pattern.
-func (r *Store) AddNamed(name, exp string) error {
+func (r *Store) AddNamed(name, exp string) (*Pattern, error) {
 	return r.add(name, exp)
 }
 
-func (r *Store) add(name, exp string) error {
+func (r *Store) add(name, exp string) (*Pattern, error) {
 	schema, err := ParseWithName(name, exp)
 	if err != nil {
-		return errors.Wrap(err, "failed parse")
+		return nil, errors.Wrap(err, "failed parse")
 	}
 
 	if len(schema.Tokens) > r.maxSize {
@@ -41,7 +43,7 @@ func (r *Store) add(name, exp string) error {
 
 	appendChild(r.root, 0, schema.Tokens)
 
-	return nil
+	return schema, nil
 }
 
 // Find returns full pattern matched for incoming string.
