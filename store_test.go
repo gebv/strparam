@@ -9,41 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_StoreSingle_ExtendsBasicTests(t *testing.T) {
-	tests := []struct {
-		pattern    string
-		in         string
-		found      bool
-		wantTokens Tokens
-	}{
-		{"", "", false, nil},
-		{"", "123", false, nil},
-		{"123", "", false, nil},
-		{"foobar{param}", "", false, nil},
-		{"foobar{param}", "123foobar", false, nil},
-		{"{param}foobar", "foobar123", false, nil},
-		{"foo{param}bar", "", false, nil},
-		{"foo{param}bar", "123foobar", false, nil},
-		{"foo{param}bar", "foobar123", false, nil},
-		{"{param}", "", true, Tokens{StartToken, ParsedParameterToken("param", ""), EndToken}},
-		{"{param}", "123", true, Tokens{StartToken, ParsedParameterToken("param", "123"), EndToken}},
-	}
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%q->%q", tt.pattern, tt.in), func(t *testing.T) {
-			s := NewStore()
-			s.Add(tt.pattern)
-			t.Log("[INFO] store", s.String())
-			foundSchema := s.Find(tt.in)
-			if tt.found {
-				require.NotEmpty(t, foundSchema)
-				require.EqualValues(t, tt.wantTokens, foundSchema.Tokens)
-			} else {
-				require.Empty(t, foundSchema)
-			}
-		})
-	}
-}
-
 func Test_StoreSingle_BasicTests(t *testing.T) {
 	// result should be the same as in the case Parse and Loockup for same pattern
 
@@ -74,19 +39,158 @@ func Test_StoreSingle_BasicTests(t *testing.T) {
 	}
 }
 
+func Test_StoreSingle_ExtendsBasicTests(t *testing.T) {
+	tests := []struct {
+		pattern     string
+		in          string
+		shouldFound bool
+		wantTokens  Tokens
+	}{
+		{"", "", false, nil},
+		{"", "123", false, nil},
+		{"123", "", false, nil},
+		{"foobar{param}", "", false, nil},
+		{"foobar{param}", "123foobar", false, nil},
+		{"{param}foobar", "foobar123", false, nil},
+		{"foo{param}bar", "", false, nil},
+		{"foo{param}bar", "123foobar", false, nil},
+		{"foo{param}bar", "foobar123", false, nil},
+		{"{param}", "", true, Tokens{StartToken, ParsedParameterToken("param", ""), EndToken}},
+		{"{param}", "123", true, Tokens{StartToken, ParsedParameterToken("param", "123"), EndToken}},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%q->%q", tt.pattern, tt.in), func(t *testing.T) {
+			s := NewStore()
+			s.Add(tt.pattern)
+			t.Log("[INFO] storage structure", s.String())
+			foundSchema := s.Find(tt.in)
+			if tt.shouldFound {
+				require.NotEmpty(t, foundSchema)
+				require.EqualValues(t, tt.wantTokens, foundSchema.Tokens)
+			} else {
+				require.Empty(t, foundSchema)
+			}
+		})
+	}
+}
+
 func Test_StoreMultiple(t *testing.T) {
-	s := NewStore()
-	_, err := s.Add("foo2{p1}foo2{p2}golang")
-	require.NoError(t, err)
-	_, err = s.Add("foo1{p3}foo1{p4}golang")
-	require.NoError(t, err)
-	_, err = s.Add("abc{p5}def{p6}golang")
-	require.NoError(t, err)
-	t.Log(s.String())
-	in := "foo1XXXfoo1YYYgolang"
-	schema := s.Find(in)
-	require.NotEmpty(t, schema)
-	t.Log(schema.Tokens.String())
+	// NOTE: for ease of reading consider url routing
+	// NOTE: order of addition patterns makes a difference
+	// NOTE: uses named patterns to match exactly
+
+	tests := []struct {
+		namedPatterns [][]string
+		in            string
+		shouldFound   bool
+		wantTokens    Tokens
+	}{
+		// empty list patterns
+		{[][]string{}, "", false, nil},
+
+		{[][]string{{"name1", "/"}}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("name1")}},
+		{[][]string{{"", "/"}}, "/", true, Tokens{StartToken, ConstToken("/"), EndToken}},
+
+		{[][]string{
+			{"", "/a"},
+			{"", "/b"},
+		}, "/a", true, Tokens{StartToken, ConstToken("/a"), EndToken}},
+		{[][]string{
+			{"", "/a"},
+			{"", "/b"},
+		}, "/c", false, nil},
+
+		{[][]string{
+			{"index", "/"},
+			{"paramed", "/{param}"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"paramed", "/{param}"},
+			{"index", "/"},
+			// order matters
+		}, "/", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("param", ""), NamedEndToken("paramed")}},
+		{[][]string{
+			{"index", "/"},
+			{"paramed", "/{param}"},
+		}, "/foo", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("param", "foo"), NamedEndToken("paramed")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"sub", "/sub"},
+		}, "/sub", true, Tokens{StartToken, ConstToken("/sub"), NamedEndToken("sub")}},
+		{[][]string{
+			{"index", "/"},
+			{"sub", "/sub"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"sub", "/sub"},
+			{"index", "/"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"path", "/path/"},
+			{"index", "/"},
+			{"pathParams", "/path/{params}"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+			{"index", "/"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+		}, "/notexists", false, nil},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+		}, "/path/", true, Tokens{StartToken, ConstToken("/path/"), NamedEndToken("path")}},
+		{[][]string{
+			{"index", "/"},
+			{"pathParams", "/path/{params}"},
+			{"path", "/path/"},
+			// order matters
+		}, "/path/", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("params", ""), NamedEndToken("pathParams")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{param}"},
+		}, "/path/foo", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("param", "foo"), NamedEndToken("pathParams")}},
+		{[][]string{
+			{"index", "/"},
+			{"pathParams", "/path/{param}"},
+			{"path", "/path/"},
+		}, "/path/foo", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("param", "foo"), NamedEndToken("pathParams")}},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%q->%q", tt.namedPatterns, tt.in), func(t *testing.T) {
+			s := NewStore()
+			for _, rawPattern := range tt.namedPatterns {
+				s.AddNamed(rawPattern[0], rawPattern[1])
+			}
+
+			t.Log("[INFO] storage structure", s.String())
+
+			foundPattern := s.Find(tt.in)
+
+			if tt.shouldFound {
+				require.NotEmpty(t, foundPattern)
+				require.EqualValues(t, tt.wantTokens, foundPattern.Tokens)
+			} else {
+				require.Empty(t, foundPattern)
+			}
+		})
+	}
 }
 
 func Test_Store_ManySimilarPatterns(t *testing.T) {

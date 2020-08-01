@@ -136,3 +136,10 @@ func ParsedParameterToken(rawName, val string) Token {
 		},
 	}
 }
+
+func NamedEndToken(name string) Token {
+	return Token{
+		Mode: END,
+		Raw:  name,
+	}
+}

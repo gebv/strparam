@@ -77,14 +77,13 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 			if len(in) == offset {
 				// if we have reached the END type token, then we have completely specific pattern
 				*res = append(*res, node.Token)
+				// returns because have reached the end
+				return
 			}
-
-			// returns because have reached the end
-			return
 		case CONST:
 			if offset <= len(in) && offset+node.Token.Len <= len(in) {
 				if in[offset:offset+node.Token.Len] == node.Token.Raw {
-					if isEndBranche(node) && len(in) != offset+node.Token.Len {
+					if node.isOneEndChild() && len(in) != offset+node.Token.Len {
 						// go to next child for current level if the branch ended and not matched lengths for cursor and input value
 						continue
 					}
@@ -115,22 +114,17 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 			if paramWidth > 0 {
 				*res = append(*res, nextPattern.Token)
 				lookupNextToken(in, offset+paramWidth+nextPattern.Token.Len, nextPattern, res, numParams)
+				// returns because we move deeper into the tree from found matched pattern
+				return
 			} else {
 				lookupNextToken(in, offset, node, res, numParams)
+				// returns because we move deeper into the tree from current node
+				return
 			}
-
-			return
 		default:
 			panic(fmt.Sprintf("not supported token type %v", node.Token.Mode))
 		}
 	}
-}
-
-func isEndBranche(node *node) bool {
-	if len(node.Childs) == 1 {
-		return node.Childs[0].Token.Mode == END
-	}
-	return false
 }
 
 func lookupNextPattern(in string, offset int, param *node) (*node, int) {
@@ -203,4 +197,12 @@ func dumpChilds(w io.Writer, level int, n *node) {
 type node struct {
 	Token  Token
 	Childs []*node
+}
+
+// isOneEndChild reutrns true if the current branch has END
+func (n *node) isOneEndChild() bool {
+	if len(n.Childs) == 1 {
+		return n.Childs[0].Token.Mode == END
+	}
+	return false
 }
