@@ -397,7 +397,15 @@ func (n *node) lengthConstOrZero() int {
 }
 
 func (n *node) Less(i, j int) bool {
-	return n.Childs[i].lengthConstOrZero() >= n.Childs[j].lengthConstOrZero() && len(n.Childs[i].Childs) >= len(n.Childs[j].Childs)
+	if n.Childs[i].Token.Mode != n.Childs[j].Token.Mode {
+		if n.Childs[i].Token.Mode == CONST {
+			return true
+		}
+	}
+	if n.Childs[i].lengthConstOrZero() != n.Childs[j].lengthConstOrZero() {
+		return n.Childs[i].lengthConstOrZero() >= n.Childs[j].lengthConstOrZero()
+	}
+	return len(n.Childs[i].Childs) >= len(n.Childs[j].Childs)
 }
 
 func (n *node) Swap(i, j int) {

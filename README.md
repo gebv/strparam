@@ -66,14 +66,14 @@ found, params := s.Lookup(in)
 
 Performing multiple pattern match for input string. To use a variety of patterns.
 
-NOTE: At same level the patterns are sorted (by number of childs and by length constatnt token value) from top to down
+At same level the patterns are sorted (by number of childs and by length constatnt token value) from top to down
 
-```
-C--C--C--C--C--
-C--C--C--C--
-C--C--C--
-C--
-```
+Sorting rules:
+- CONST type token has the highest weight
+- longer CONST type token has a higher weight
+- token with more childs has a higher weight
+
+TODO: more details on engine a multiple pattern matching
 
 ```golang
 r := NewStore()
