@@ -24,9 +24,13 @@ func Test_StoreSingle_BasicTests(t *testing.T) {
 			s := NewStore()
 			s.Add(tt.pattern)
 
+			t.Log("[INFO] store schema:", s.String())
+
 			schema := s.Find(tt.in)
-			// TODO: check if found
-			t.Log("[INFO] found schema:", schema)
+
+			if schema != nil {
+				t.Log("[INFO] found schema:", schema.String())
+			}
 
 			found, params := schema.Lookup(tt.in)
 			if found != tt.found {
@@ -75,8 +79,8 @@ func Test_StoreSingle_ExtendsBasicTests(t *testing.T) {
 }
 
 func Test_StoreMultiple(t *testing.T) {
-	// NOTE: for ease of reading consider url routing
-	// NOTE: order of addition patterns makes a difference
+	// NOTE: for ease of reading consider url routing (but it is not usable for http routing)
+	// NOTE: the behavior is independent of the order of appends
 	// NOTE: uses named patterns to match exactly
 
 	tests := []struct {
@@ -101,6 +105,7 @@ func Test_StoreMultiple(t *testing.T) {
 		}, "/c", false, nil},
 
 		{[][]string{
+			// correct priority
 			{"index", "/"},
 			{"paramed", "/{param}"},
 		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
@@ -108,7 +113,7 @@ func Test_StoreMultiple(t *testing.T) {
 			{"paramed", "/{param}"},
 			{"index", "/"},
 			// order matters
-		}, "/", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("param", ""), NamedEndToken("paramed")}},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
 		{[][]string{
 			{"index", "/"},
 			{"paramed", "/{param}"},
@@ -159,7 +164,7 @@ func Test_StoreMultiple(t *testing.T) {
 			{"pathParams", "/path/{params}"},
 			{"path", "/path/"},
 			// order matters
-		}, "/path/", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("params", ""), NamedEndToken("pathParams")}},
+		}, "/path/", true, Tokens{StartToken, ConstToken("/path/"), NamedEndToken("path")}},
 
 		{[][]string{
 			{"index", "/"},
@@ -252,4 +257,21 @@ func Benchmark_Store_Lookup_2_102(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		r.Find(in)
 	}
+}
+
+func Test_StoreCustomPatterns(t *testing.T) {
+	t.Skip("playground")
+	r := NewStore()
+	r.AddPattern(&Pattern{Tokens: Tokens{
+		StartToken, ConstToken("/"), ParameterToken("key"), ConstToken("/"), ConstToken("some"), NamedEndToken("index params with suffix"),
+	}})
+	r.AddPattern(&Pattern{Tokens: Tokens{
+		StartToken, ConstToken("/"), ParameterToken("key"), NamedEndToken("index params"),
+	}})
+	r.AddPattern(&Pattern{Tokens: Tokens{
+		StartToken, ConstToken("/"), NamedEndToken("index"),
+	}})
+	t.Log("Schema", r.String())
+	foundPatter := r.Find("/some/some")
+	t.Log("Found", foundPatter)
 }
