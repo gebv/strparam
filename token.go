@@ -27,6 +27,8 @@ func (t *Token) String() string {
 		return ""
 	case CONST:
 		return fmt.Sprintf("Const(%q, len=%d)", t.Raw, t.Len)
+	case SEPARATOR:
+		return fmt.Sprintf("Separator(%q, len=%d)", t.Raw, t.Len)
 	case PARAMETER:
 		return fmt.Sprintf("Param(%q)", t.Raw)
 	case PARAMETER_PARSED:
@@ -79,6 +81,8 @@ type TokenMode int
 
 func (m TokenMode) String() string {
 	switch m {
+	case SEPARATOR:
+		return "separator"
 	case CONST:
 		return "const"
 	case UNKNOWN_TokenMode:
@@ -108,11 +112,21 @@ const (
 	END TokenMode = 5
 	// PARAMETER_PARSED with known offsets
 	PARAMETER_PARSED TokenMode = 6
+	// SEPARATOR special token for separating constants
+	SEPARATOR TokenMode = 7
 )
 
 func ConstToken(in string) Token {
 	return Token{
 		Mode: CONST,
+		Len:  len(in),
+		Raw:  in,
+	}
+}
+
+func SeparatorToken(in string) Token {
+	return Token{
+		Mode: SEPARATOR,
 		Len:  len(in),
 		Raw:  in,
 	}

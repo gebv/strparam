@@ -109,7 +109,7 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 				// returns because have reached the end
 				return
 			}
-		case CONST:
+		case CONST, SEPARATOR:
 			// general case
 			//
 			// -- {CONST} <- look here
@@ -310,7 +310,7 @@ func rightPath(in string, offset int, node *node) (*node, int) {
 		// 		}
 		// 	}
 
-		case CONST:
+		case CONST, SEPARATOR:
 			// -- {CONST} <- look here
 			// -- -- {PARAM}
 			// -- -- {CONST}

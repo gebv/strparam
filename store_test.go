@@ -259,19 +259,15 @@ func Benchmark_Store_Lookup_2_102(b *testing.B) {
 	}
 }
 
-func Test_StoreCustomPatterns(t *testing.T) {
-	t.Skip("playground")
-	r := NewStore()
-	r.AddPattern(&Pattern{Tokens: Tokens{
-		StartToken, ConstToken("/"), ParameterToken("key"), ConstToken("/"), ConstToken("some"), NamedEndToken("index params with suffix"),
-	}})
-	r.AddPattern(&Pattern{Tokens: Tokens{
-		StartToken, ConstToken("/"), ParameterToken("key"), NamedEndToken("index params"),
-	}})
-	r.AddPattern(&Pattern{Tokens: Tokens{
-		StartToken, ConstToken("/"), NamedEndToken("index"),
-	}})
-	t.Log("Schema", r.String())
-	foundPatter := r.Find("/some/some")
-	t.Log("Found", foundPatter)
+func Test_PatternWithSeparator(t *testing.T) {
+	t.Run("ParamBetweenSep", func(t *testing.T) {
+		pattern := &Pattern{
+			Tokens:    Tokens{StartToken, ConstToken("!"), SeparatorToken("a"), ParameterToken("param"), SeparatorToken("b"), ConstToken("c"), EndToken},
+			NumParams: 1,
+		}
+		t.Log(pattern.String())
+		matched, params := pattern.Lookup("!a123bc")
+		require.True(t, matched)
+		t.Log(params)
+	})
 }

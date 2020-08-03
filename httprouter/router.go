@@ -51,15 +51,38 @@ func (r *Router) Add(method, addPath string, h http.HandlerFunc) error {
 	}
 
 	// forming an internal key
-	routeKey := "/" + method + "/" + addPath
-	routePattern, err := r.store.Add(routeKey)
+	routeKey := ":" + method + ":" + addPath
+	routePattern, err := strparam.Parse(routeKey)
 	if err != nil {
-		return errors.Wrap(err, "failed parse and saved in repository")
+		return errors.Wrap(err, "failed parse route key")
 	}
+
+	xRoutePattern := &strparam.Pattern{
+		Tokens:    strparam.Tokens{},
+		NumParams: routePattern.NumParams,
+	}
+
+	for _, token := range routePattern.Tokens {
+		if token.Mode == strparam.CONST {
+			fields := strings.Split(token.Raw, "/")
+			for i, field := range fields {
+				if field != "" {
+					xRoutePattern.Tokens = append(xRoutePattern.Tokens, strparam.ConstToken(field))
+				}
+				if i < len(fields)-1 {
+					xRoutePattern.Tokens = append(xRoutePattern.Tokens, strparam.SeparatorToken("/"))
+				}
+			}
+		} else {
+			xRoutePattern.Tokens = append(xRoutePattern.Tokens, token)
+		}
+	}
+
+	r.store.AddPattern(xRoutePattern)
 
 	// save the handler by hash of pattern
 	// if exists returns error
-	routePatternID := strparam.ListTokensSchemaString(routePattern.Tokens)
+	routePatternID := strparam.ListTokensSchemaString(xRoutePattern.Tokens)
 	if _, exists := r.handlersMap[routePatternID]; exists {
 		return fmt.Errorf("route %q already exists", addPath)
 	}
@@ -81,7 +104,7 @@ func (r *Router) Find(method, requestPath string) (http.HandlerFunc, map[string]
 	}
 
 	// forming an internal key
-	routeKey := "/" + method + "/" + requestPath
+	routeKey := ":" + method + ":" + requestPath
 
 	// looking for a matche pattern
 	// returns error if not exists

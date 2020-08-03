@@ -166,7 +166,7 @@ func (s *Pattern) Lookup(in string) (bool, Params) {
 					Value: in[offset:],
 				})
 				offset += len(in) - offset
-			case CONST:
+			case CONST, SEPARATOR:
 				if found := strings.Index(in[offset:], _next.Raw); found > -1 {
 					params = append(params, Param{
 						Name:  t.ParamName(),
@@ -180,7 +180,7 @@ func (s *Pattern) Lookup(in string) (bool, Params) {
 			default:
 				return false, nil
 			}
-		case CONST:
+		case CONST, SEPARATOR:
 			if in[offset:offset+t.Len] == t.Raw {
 				// add the length of the pattern
 				offset += t.Len

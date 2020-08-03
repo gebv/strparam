@@ -14,6 +14,8 @@ func TokenSchemaString(t Token) string {
 		return ""
 	case CONST:
 		return fmt.Sprintf("Const(%q, len=%d)", t.Raw, t.Len)
+	case SEPARATOR:
+		return fmt.Sprintf("Separator(%q, len=%d)", t.Raw, t.Len)
 	case PARAMETER:
 		return fmt.Sprintf("Param(%q)", t.ParamName())
 	case PARAMETER_PARSED:

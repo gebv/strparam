@@ -60,9 +60,11 @@ func Test_TableTestRoutes(t *testing.T) {
 
 		{"GET", "/some", 200, "root some"},
 		{"POST", "/some", 404, ""},
-		{"GET", "/some/", 200, "root some/"},
+		{"GET", "/some/", 404, ""},
 
 		{"GET", "/some/some", 200, "root some some"},
+		// TODO: skiped because http server jumps to the dirictory higher ?? `//`
+		// {"GET", "//some", 200, "root  some"},
 
 		{"POST", "/some/some", 200, "POST root some some"},
 
@@ -72,20 +74,34 @@ func Test_TableTestRoutes(t *testing.T) {
 		{"GET", "/foo/", 200, "foo "},
 		{"POST", "/foo/", 200, "POST foo "},
 		{"GET", "/foo/bar", 200, "foo bar"},
-		{"GET", "/foo/bar/baz", 200, "foo bar/baz"},
+		{"GET", "/foo/bar/baz", 404, ""},
 		{"POST", "/foo/bar", 200, "POST foo bar"},
-		{"POST", "/foo/bar/baz", 200, "POST foo bar/baz"},
+		{"POST", "/foo/bar/baz", 404, ""},
 
+		{"GET", "/foo//foo/", 200, "foo  foo "},
+		{"GET", "/foo//foo", 404, ""},
+		{"GET", "/foo/foo/", 404, ""},
+		{"GET", "/foo/foo", 200, "foo foo"},
+
+		{"GET", "/foo/bar/foo/", 200, "foo bar foo "},
 		{"GET", "/foo/bar/foo/baz", 200, "foo bar foo baz"},
 		{"GET", "/foo/bar/foo/baz/foo", 200, "foo bar foo baz foo"},
-		{"GET", "/foo/bar/foo/baz/", 200, "foo bar foo baz/"},
+		{"GET", "/foo/bar/foo//foo", 200, "foo bar foo  foo"},
+		{"GET", "/foo//foo//foo", 200, "foo  foo  foo"},
+		{"GET", "/foo/bar/foo/baz/foo/", 404, ""},
+		{"GET", "/foo/bar/foo/baz/foo/abc", 404, ""},
+		{"GET", "/foo/bar/foo/baz/", 404, ""},
+
 		{"GET", "/foo/bar/foo/baz/bar", 200, "foo bar foo baz bar"},
+		{"GET", "/foo/bar/foo/baz/bar/", 404, ""},
+		{"GET", "/foo/bar/foo/baz/bar/abc", 404, ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("[%s]-%q", tt.method, tt.path), func(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			request, err := http.NewRequest(tt.method, tt.path, &bytes.Buffer{})
+			t.Logf("Handle request path %q", request.URL.Path)
 			require.NoError(t, err)
 			router.ServeHTTP(recorder, request)
 			if assert.EqualValues(t, tt.status, recorder.Code) {
@@ -116,30 +132,30 @@ func BenchmarkSimpleRouting(b *testing.B) {
 		status int
 		body   string
 	}{
-		{"GET", "/", 200, "home page"},
-		{"POST", "/", 404, ""},
+		// {"GET", "/", 200, "home page"},
+		// {"POST", "/", 404, ""},
 
-		{"GET", "/some", 200, "root some"},
-		{"POST", "/some", 404, ""},
-		{"GET", "/some/", 200, "root some/"},
+		// {"GET", "/some", 200, "root some"},
+		// {"POST", "/some", 404, ""},
+		// {"GET", "/some/", 200, "root some/"},
 
-		{"GET", "/some/some", 200, "root some some"},
+		// {"GET", "/some/some", 200, "root some some"},
 
-		{"POST", "/some/some", 200, "POST root some some"},
+		// {"POST", "/some/some", 200, "POST root some some"},
 
-		{"GET", "/foo", 200, "static1 page"},
-		{"POST", "/foo", 200, "POST static1 page"},
+		// {"GET", "/foo", 200, "static1 page"},
+		// {"POST", "/foo", 200, "POST static1 page"},
 
-		{"GET", "/foo/", 200, "foo "},
-		{"POST", "/foo/", 200, "POST foo "},
-		{"GET", "/foo/bar", 200, "foo bar"},
-		{"GET", "/foo/bar/baz", 200, "foo bar/baz"},
-		{"POST", "/foo/bar", 200, "POST foo bar"},
-		{"POST", "/foo/bar/baz", 200, "POST foo bar/baz"},
+		// {"GET", "/foo/", 200, "foo "},
+		// {"POST", "/foo/", 200, "POST foo "},
+		// {"GET", "/foo/bar", 200, "foo bar"},
+		// {"GET", "/foo/bar/baz", 200, "foo bar/baz"},
+		// {"POST", "/foo/bar", 200, "POST foo bar"},
+		// {"POST", "/foo/bar/baz", 200, "POST foo bar/baz"},
 
-		{"GET", "/foo/bar/foo/baz", 200, "foo bar foo baz"},
-		{"GET", "/foo/bar/foo/baz/foo", 200, "foo bar foo baz foo"},
-		{"GET", "/foo/bar/foo/baz/", 200, "foo bar foo baz/"},
+		// {"GET", "/foo/bar/foo/baz", 200, "foo bar foo baz"},
+		// {"GET", "/foo/bar/foo/baz/foo", 200, "foo bar foo baz foo"},
+		// {"GET", "/foo/bar/foo/baz/", 200, "foo bar foo baz/"},
 		{"GET", "/foo/bar/foo/baz/bar", 200, "foo bar foo baz bar"},
 	}
 
