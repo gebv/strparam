@@ -126,6 +126,8 @@ func parse(patternName, exp string) (*Pattern, error) {
 // Lookup returns list params if input string matched to schema.
 //
 // NOTE: nothing (empty list of tokens) not matches to anything.
+//
+// nolint: gocyclo
 func (s *Pattern) Lookup(in string) (bool, Params) {
 	if s == nil {
 		return false, nil
