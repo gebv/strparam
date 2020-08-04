@@ -14,6 +14,7 @@ const (
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
+// RandAZ returns random string specific lenght [a-zA-Z].
 func RandAZ(n int) string {
 	b := make([]byte, n)
 	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!

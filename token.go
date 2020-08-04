@@ -17,16 +17,20 @@ type Token struct {
 	Param *Token
 }
 
+// Equal returns true if mode and length and values is equal.
 func (t Token) Equal(in Token) bool {
 	return t.Mode == in.Mode && t.Len == in.Len && t.Raw == in.Raw
 }
 
+// String returns human-readable format of token .
 func (t *Token) String() string {
 	switch t.Mode {
 	case UNKNOWN_TokenMode:
 		return ""
 	case CONST:
 		return fmt.Sprintf("Const(%q, len=%d)", t.Raw, t.Len)
+	case SEPARATOR:
+		return fmt.Sprintf("Separator(%q, len=%d)", t.Raw, t.Len)
 	case PARAMETER:
 		return fmt.Sprintf("Param(%q)", t.Raw)
 	case PARAMETER_PARSED:
@@ -56,6 +60,7 @@ func (t *Token) ParamName() string {
 	return ""
 }
 
+// Tokens helper type for list tokens.
 type Tokens []Token
 
 func (t Tokens) String() string {
@@ -75,10 +80,14 @@ var (
 	EmptySchema = Tokens{StartToken, EndToken}
 )
 
+// TokenMode type of token mode.
 type TokenMode int
 
+// String returns human-readable format of token mode.
 func (m TokenMode) String() string {
 	switch m {
+	case SEPARATOR:
+		return "separator"
 	case CONST:
 		return "const"
 	case UNKNOWN_TokenMode:
@@ -108,8 +117,11 @@ const (
 	END TokenMode = 5
 	// PARAMETER_PARSED with known offsets
 	PARAMETER_PARSED TokenMode = 6
+	// SEPARATOR special token for separating constants
+	SEPARATOR TokenMode = 7
 )
 
+// ConstToken returns a token of type CONST.
 func ConstToken(in string) Token {
 	return Token{
 		Mode: CONST,
@@ -118,6 +130,16 @@ func ConstToken(in string) Token {
 	}
 }
 
+// SeparatorToken returns a token of type SEPARATOR.
+func SeparatorToken(in string) Token {
+	return Token{
+		Mode: SEPARATOR,
+		Len:  len(in),
+		Raw:  in,
+	}
+}
+
+// ParameterToken returns a token of type PARAM.
 func ParameterToken(rawName string) Token {
 	return Token{
 		Mode: PARAMETER,
@@ -125,6 +147,7 @@ func ParameterToken(rawName string) Token {
 	}
 }
 
+// ParsedParameterToken returns a token of type PARSED_PARAM.
 func ParsedParameterToken(rawName, val string) Token {
 	return Token{
 		Mode: PARAMETER_PARSED,
@@ -134,5 +157,13 @@ func ParsedParameterToken(rawName, val string) Token {
 			Mode: PARAMETER,
 			Raw:  string(DefaultStartParam) + rawName + string(DefaultEndParam),
 		},
+	}
+}
+
+// NamedEndToken returns a named token of type END.
+func NamedEndToken(name string) Token {
+	return Token{
+		Mode: END,
+		Raw:  name,
 	}
 }

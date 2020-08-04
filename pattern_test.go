@@ -1,6 +1,7 @@
 package strparam
 
 import (
+	"reflect"
 	"regexp"
 	"testing"
 
@@ -275,6 +276,31 @@ func Test_Pattern_Name(t *testing.T) {
 			}
 			if got := s.Name(); got != tt.want {
 				t.Errorf("PatternSchema.Name() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseWithName(t *testing.T) {
+	tests := []struct {
+		name        string
+		patternName string
+		patternExp  string
+		wantName    string
+		wantErr     bool
+	}{
+		{"", "foobar", "a{b}c", "foobar", false},
+		{"", "", "a{b}c", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseWithName(tt.patternName, tt.patternExp)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseWithName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got.Name(), tt.wantName) {
+				t.Errorf("ParseWithName() = %v, want %v", got, tt.wantName)
 			}
 		})
 	}

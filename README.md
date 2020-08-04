@@ -66,6 +66,15 @@ found, params := s.Lookup(in)
 
 Performing multiple pattern match for input string. To use a variety of patterns.
 
+At same level the patterns are sorted (by number of childs and by length constatnt token value) from top to down
+
+Sorting rules:
+- CONST type token has the highest weight
+- longer CONST type token has a higher weight
+- token with more childs has a higher weight
+
+TODO: more details on engine a multiple pattern matching
+
 ```golang
 r := NewStore()
 r.Add("foo2{p1}foo2{p2}golang")
@@ -164,6 +173,7 @@ As parsing incoming string we are moving to deep in the tree.
 - [ ] extend parameters for internal validators, eg `{paramName required, len=10}`
 - [ ] external validators via hooks
 - [ ] stream parser
+- [ ] sets weight for equal childs (for sorting), eg `{paramName1 weight=100}`, `{paramName2 weight=200}` (specific case?)
 
 # License
 

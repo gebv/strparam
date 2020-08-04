@@ -166,7 +166,7 @@ func (s *Pattern) Lookup(in string) (bool, Params) {
 					Value: in[offset:],
 				})
 				offset += len(in) - offset
-			case CONST:
+			case CONST, SEPARATOR:
 				if found := strings.Index(in[offset:], _next.Raw); found > -1 {
 					params = append(params, Param{
 						Name:  t.ParamName(),
@@ -180,7 +180,7 @@ func (s *Pattern) Lookup(in string) (bool, Params) {
 			default:
 				return false, nil
 			}
-		case CONST:
+		case CONST, SEPARATOR:
 			if in[offset:offset+t.Len] == t.Raw {
 				// add the length of the pattern
 				offset += t.Len
@@ -206,6 +206,7 @@ exitloop:
 	return true, params
 }
 
+// Pattern structure storing the template.
 type Pattern struct {
 	Tokens    Tokens
 	NumParams int
@@ -231,9 +232,11 @@ func (s Pattern) Name() string {
 	return endToken.Raw
 }
 
+// Param helper struct for storing key-value from parsed of parameters.
 type Param struct {
 	Name  string
 	Value string
 }
 
+// Params helper struct for list of Param.
 type Params []Param

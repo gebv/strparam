@@ -9,12 +9,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_StoreSingle_BasicTests(t *testing.T) {
+	// result should be the same as in the case Parse and Loockup for same pattern
+
+	tests := patternBasicCases
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s: %q->%q", tt.name, tt.pattern, tt.in), func(t *testing.T) {
+			if tt.wantErr {
+				t.Skip("because want error")
+			}
+
+			t.Logf("[INFO] pattern = %q, input = %q", tt.pattern, tt.in)
+
+			s := NewStore()
+			s.Add(tt.pattern)
+
+			t.Log("[INFO] store schema:", s.String())
+
+			schema := s.Find(tt.in)
+
+			if schema != nil {
+				t.Log("[INFO] found schema:", schema.String())
+			}
+
+			found, params := schema.Lookup(tt.in)
+			if found != tt.found {
+				t.Errorf("Loockup().found = %v, want %v", found, tt.found)
+			}
+			if !reflect.DeepEqual(params, tt.want) {
+				t.Errorf("Loockup().params = %v, want %v", params, tt.want)
+			}
+		})
+	}
+}
+
 func Test_StoreSingle_ExtendsBasicTests(t *testing.T) {
 	tests := []struct {
-		pattern    string
-		in         string
-		found      bool
-		wantTokens Tokens
+		pattern     string
+		in          string
+		shouldFound bool
+		wantTokens  Tokens
 	}{
 		{"", "", false, nil},
 		{"", "123", false, nil},
@@ -32,9 +66,9 @@ func Test_StoreSingle_ExtendsBasicTests(t *testing.T) {
 		t.Run(fmt.Sprintf("%q->%q", tt.pattern, tt.in), func(t *testing.T) {
 			s := NewStore()
 			s.Add(tt.pattern)
-			t.Log("[INFO] store", s.String())
+			t.Log("[INFO] storage structure", s.String())
 			foundSchema := s.Find(tt.in)
-			if tt.found {
+			if tt.shouldFound {
 				require.NotEmpty(t, foundSchema)
 				require.EqualValues(t, tt.wantTokens, foundSchema.Tokens)
 			} else {
@@ -44,49 +78,124 @@ func Test_StoreSingle_ExtendsBasicTests(t *testing.T) {
 	}
 }
 
-func Test_StoreSingle_BasicTests(t *testing.T) {
-	// result should be the same as in the case Parse and Loockup for same pattern
+func Test_StoreMultiple(t *testing.T) {
+	// NOTE: for ease of reading consider url routing (but it is not usable for http routing)
+	// NOTE: the behavior is independent of the order of appends
+	// NOTE: uses named patterns to match exactly
 
-	tests := patternBasicCases
+	tests := []struct {
+		namedPatterns [][]string
+		in            string
+		shouldFound   bool
+		wantTokens    Tokens
+	}{
+		// empty list patterns
+		{[][]string{}, "", false, nil},
+
+		{[][]string{{"name1", "/"}}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("name1")}},
+		{[][]string{{"", "/"}}, "/", true, Tokens{StartToken, ConstToken("/"), EndToken}},
+
+		{[][]string{
+			{"", "/a"},
+			{"", "/b"},
+		}, "/a", true, Tokens{StartToken, ConstToken("/a"), EndToken}},
+		{[][]string{
+			{"", "/a"},
+			{"", "/b"},
+		}, "/c", false, nil},
+
+		{[][]string{
+			// correct priority
+			{"index", "/"},
+			{"paramed", "/{param}"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"paramed", "/{param}"},
+			{"index", "/"},
+			// order matters
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"index", "/"},
+			{"paramed", "/{param}"},
+		}, "/foo", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("param", "foo"), NamedEndToken("paramed")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"sub", "/sub"},
+		}, "/sub", true, Tokens{StartToken, ConstToken("/sub"), NamedEndToken("sub")}},
+		{[][]string{
+			{"index", "/"},
+			{"sub", "/sub"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"sub", "/sub"},
+			{"index", "/"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"path", "/path/"},
+			{"index", "/"},
+			{"pathParams", "/path/{params}"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+		{[][]string{
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+			{"index", "/"},
+		}, "/", true, Tokens{StartToken, ConstToken("/"), NamedEndToken("index")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+		}, "/notexists", false, nil},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{params}"},
+		}, "/path/", true, Tokens{StartToken, ConstToken("/path/"), NamedEndToken("path")}},
+		{[][]string{
+			{"index", "/"},
+			{"pathParams", "/path/{params}"},
+			{"path", "/path/"},
+			// order matters
+		}, "/path/", true, Tokens{StartToken, ConstToken("/path/"), NamedEndToken("path")}},
+
+		{[][]string{
+			{"index", "/"},
+			{"path", "/path/"},
+			{"pathParams", "/path/{param}"},
+		}, "/path/foo", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("param", "foo"), NamedEndToken("pathParams")}},
+		{[][]string{
+			{"index", "/"},
+			{"pathParams", "/path/{param}"},
+			{"path", "/path/"},
+		}, "/path/foo", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("param", "foo"), NamedEndToken("pathParams")}},
+	}
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%s: %q->%q", tt.name, tt.pattern, tt.in), func(t *testing.T) {
-			if tt.wantErr {
-				t.Skip("because want error")
-			}
-
-			t.Logf("[INFO] pattern = %q, input = %q", tt.pattern, tt.in)
-
+		t.Run(fmt.Sprintf("%q->%q", tt.namedPatterns, tt.in), func(t *testing.T) {
 			s := NewStore()
-			s.Add(tt.pattern)
-
-			schema := s.Find(tt.in)
-			// TODO: check if found
-			t.Log("[INFO] found schema:", schema)
-
-			found, params := schema.Lookup(tt.in)
-			if found != tt.found {
-				t.Errorf("Loockup().found = %v, want %v", found, tt.found)
+			for _, rawPattern := range tt.namedPatterns {
+				s.AddNamed(rawPattern[0], rawPattern[1])
 			}
-			if !reflect.DeepEqual(params, tt.want) {
-				t.Errorf("Loockup().params = %v, want %v", params, tt.want)
+
+			t.Log("[INFO] storage structure", s.String())
+
+			foundPattern := s.Find(tt.in)
+
+			if tt.shouldFound {
+				require.NotEmpty(t, foundPattern)
+				require.EqualValues(t, tt.wantTokens, foundPattern.Tokens)
+			} else {
+				require.Empty(t, foundPattern)
 			}
 		})
 	}
-}
-
-func Test_StoreMultiple(t *testing.T) {
-	s := NewStore()
-	err := s.Add("foo2{p1}foo2{p2}golang")
-	require.NoError(t, err)
-	err = s.Add("foo1{p3}foo1{p4}golang")
-	require.NoError(t, err)
-	err = s.Add("abc{p5}def{p6}golang")
-	require.NoError(t, err)
-	t.Log(s.String())
-	in := "foo1XXXfoo1YYYgolang"
-	schema := s.Find(in)
-	require.NotEmpty(t, schema)
-	t.Log(schema.Tokens.String())
 }
 
 func Test_Store_ManySimilarPatterns(t *testing.T) {
@@ -148,4 +257,17 @@ func Benchmark_Store_Lookup_2_102(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		r.Find(in)
 	}
+}
+
+func Test_PatternWithSeparator(t *testing.T) {
+	t.Run("ParamBetweenSep", func(t *testing.T) {
+		pattern := &Pattern{
+			Tokens:    Tokens{StartToken, ConstToken("!"), SeparatorToken("a"), ParameterToken("param"), SeparatorToken("b"), ConstToken("c"), EndToken},
+			NumParams: 1,
+		}
+		t.Log(pattern.String())
+		matched, params := pattern.Lookup("!a123bc")
+		require.True(t, matched)
+		t.Log(params)
+	})
 }
