@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewStore returns new storage instanse for patterns.
+// NewStore returns new storage instance for patterns.
 func NewStore() *Store {
 	return &Store{
 		root:       &node{Token: Token{}},
