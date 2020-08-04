@@ -18,6 +18,7 @@ func NewRouter() *Router {
 	}
 }
 
+// Router implements http routing.
 type Router struct {
 	store           *strparam.Store
 	handlersMap     map[string]http.HandlerFunc

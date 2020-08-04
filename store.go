@@ -31,6 +31,7 @@ func (r *Store) AddNamed(name, exp string) (*Pattern, error) {
 	return r.add(name, exp)
 }
 
+// AddPattern add from pattern.
 func (r *Store) AddPattern(p *Pattern) {
 	if len(p.Tokens) > r.maxSize {
 		r.maxSize = len(p.Tokens)
@@ -179,115 +180,6 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 	}
 }
 
-// func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParams *int) {
-// 	log.Println(">>>> lookupNextToken", parent.Token.String())
-// 	for _, node := range parent.Childs {
-// 		log.Println("\t>>>>>", parent.Token.String())
-// 		log.Println("\t>>>>>", node.Token.String())
-// 		log.Println("\t>>>>>", len(in), offset, offset+node.Token.Len)
-
-// 		switch node.Token.Mode {
-// 		case START:
-// 			*res = append(*res, node.Token)
-
-// 			// jump into the branch
-// 			lookupNextToken(in, offset+node.Token.Len, node, res, numParams)
-
-// 			// returns because must be onece start token
-// 			return
-// 		case END:
-// 			// only if the offset is strictly equal to the input string
-// 			if len(in) == offset {
-// 				// if we have reached the END type token, then we have completely specific pattern
-// 				*res = append(*res, node.Token)
-// 				// returns because have reached the end
-// 				return
-// 			}
-// 		case CONST:
-// 			// general case
-// 			//
-// 			// -- {CONST}
-// 			// -- -- {PARAM}
-// 			// -- -- {END}
-// 			if offset <= len(in) && offset+node.Token.Len <= len(in) {
-// 				if in[offset:offset+node.Token.Len] == node.Token.Raw {
-// 					if node.isOneEndChild() && len(in) != offset+node.Token.Len {
-// 						// go to next child for current level if the branch ended and not matched lengths for cursor and input value
-// 						continue
-// 					}
-
-// 					*res = append(*res, node.Token)
-
-// 					// jump into the branch
-// 					lookupNextToken(in, offset+node.Token.Len, node, res, numParams)
-
-// 					// returns because we move deeper into the tree
-// 					return
-// 				}
-// 			}
-
-// 		case PARAMETER:
-// 			// general case
-// 			//
-// 			// -- {PARAM}
-// 			// -- -- {CONST}
-// 			// -- -- {END}
-// 			nextPattern, paramWidth := lookupNextPattern(in, offset, node)
-
-// 			if offset <= len(in) && offset+paramWidth <= len(in) {
-// 				*res = append(*res, Token{
-// 					Mode:  PARAMETER_PARSED,
-// 					Len:   paramWidth,
-// 					Raw:   in[offset : offset+paramWidth],
-// 					Param: &node.Token,
-// 				})
-// 				*numParams++
-// 			}
-
-// 			if paramWidth > 0 {
-// 				*res = append(*res, nextPattern.Token)
-// 				lookupNextToken(in, offset+paramWidth+nextPattern.Token.Len, nextPattern, res, numParams)
-// 				// returns because we move deeper into the tree from found matched pattern
-// 				return
-// 			} else {
-// 				lookupNextToken(in, offset, node, res, numParams)
-// 				// returns because we move deeper into the tree from current node
-// 				return
-// 			}
-// 		default:
-// 			panic(fmt.Sprintf("not supported token type %v", node.Token.Mode))
-// 		}
-// 	}
-// }
-
-// func lookupNextPattern(in string, offset int, param *node) (*node, int) {
-// 	for _, node := range param.Childs {
-// 		switch node.Token.Mode {
-// 		case START:
-// 			panic("that is impossible: beginning of line in the middle of a word")
-// 		case END:
-// 			// TODO: если встречаем `/` то обрубаем
-// 			if param.Token.Mode == PARAMETER {
-// 				// tail is the parameter value - because parameter is the last in the pattern
-// 				return node, len(in) - offset
-// 			}
-// 			return node, 0
-// 		case PARAMETER:
-// 			panic("out of sequence parameter")
-// 		case CONST:
-// 			if offset > len(in) {
-// 				// out of bounds
-// 				return node, 0
-// 			}
-// 			// TODO: если встречаем `/` то прерываем
-// 			if found := strings.Index(in[offset:], node.Token.Raw); found > -1 {
-// 				return node, found
-// 			}
-// 		}
-// 	}
-// 	return nil, 0
-// }
-
 func rightPath(in string, offset int, node *node) (*node, int) {
 	for _, child := range node.Childs {
 		switch child.Token.Mode {
@@ -385,6 +277,7 @@ type node struct {
 // 	return false
 // }
 
+// Len returns the number of children.
 func (n *node) Len() int {
 	return len(n.Childs)
 }
@@ -396,6 +289,10 @@ func (n *node) lengthConstOrZero() int {
 	return len(n.Token.Raw)
 }
 
+// Less returns true if
+// - left token type is CONST
+// - more length of value of token (type is CONST) on the left than right
+// - more num of children on the left than right
 func (n *node) Less(i, j int) bool {
 	if n.Childs[i].Token.Mode != n.Childs[j].Token.Mode {
 		if n.Childs[i].Token.Mode == CONST {
@@ -408,6 +305,7 @@ func (n *node) Less(i, j int) bool {
 	return len(n.Childs[i].Childs) >= len(n.Childs[j].Childs)
 }
 
+// Swap swap children
 func (n *node) Swap(i, j int) {
 	n.Childs[i], n.Childs[j] = n.Childs[j], n.Childs[i]
 }

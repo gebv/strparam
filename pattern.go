@@ -206,6 +206,7 @@ exitloop:
 	return true, params
 }
 
+// Pattern structure storing the template.
 type Pattern struct {
 	Tokens    Tokens
 	NumParams int
@@ -231,9 +232,11 @@ func (s Pattern) Name() string {
 	return endToken.Raw
 }
 
+// Param helper struct for storing key-value from parsed of parameters.
 type Param struct {
 	Name  string
 	Value string
 }
 
+// Params helper struct for list of Param.
 type Params []Param
