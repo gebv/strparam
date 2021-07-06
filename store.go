@@ -121,6 +121,9 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 			// -- -- {END}
 
 			if offset+child.Token.Len <= len(in) {
+				if child.nextEnd() && offset+child.Token.Len != len(in) {
+					continue
+				}
 				if in[offset:offset+child.Token.Len] == child.Token.Raw {
 					*res = append(*res, child.Token)
 
@@ -287,6 +290,13 @@ func (n *node) lengthConstOrZero() int {
 		return 0
 	}
 	return len(n.Token.Raw)
+}
+
+func (n *node) nextEnd() bool {
+	if len(n.Childs) != 1 {
+		return false
+	}
+	return n.Childs[0].Token.Mode == END
 }
 
 // Less returns true if

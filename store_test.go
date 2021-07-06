@@ -176,6 +176,36 @@ func Test_StoreMultiple(t *testing.T) {
 			{"pathParams", "/path/{param}"},
 			{"path", "/path/"},
 		}, "/path/foo", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("param", "foo"), NamedEndToken("pathParams")}},
+
+		// https://github.com/gebv/strparam/issues/7
+		{[][]string{
+			{"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			{"d", "/baz"},
+			{"e", "/ba{foobar}"},
+		}, "/baz", true, Tokens{StartToken, ConstToken("/baz"), NamedEndToken("d")}},
+		{[][]string{
+			{"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			// {"d", "/baz"},
+			{"e", "/ba{foobar}"},
+		}, "/baz", true, Tokens{StartToken, ConstToken("/ba"), ParsedParameterToken("foobar", "z"), NamedEndToken("e")}},
+		{[][]string{
+			{"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			// {"d", "/baz"},
+			// {"e", "/ba{foobar}"},
+		}, "/baz", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("foobar", "baz"), NamedEndToken("a")}},
+		{[][]string{
+			// {"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			// {"d", "/baz"},
+			// {"e", "/ba{foobar}"},
+		}, "/baz", false, nil},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%q->%q", tt.namedPatterns, tt.in), func(t *testing.T) {
@@ -270,4 +300,17 @@ func Test_PatternWithSeparator(t *testing.T) {
 		require.True(t, matched)
 		t.Log(params)
 	})
+}
+
+func Test_nextEnd(t *testing.T) {
+	n := &node{}
+	assert.False(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: ConstToken("!")}}}
+	assert.False(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: SeparatorToken("a")}}}
+	assert.False(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: EndToken}}}
+	assert.True(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: NamedEndToken("abc")}}}
+	assert.True(t, n.nextEnd())
 }
