@@ -206,6 +206,17 @@ func Test_StoreMultiple(t *testing.T) {
 			// {"d", "/baz"},
 			// {"e", "/ba{foobar}"},
 		}, "/baz", false, nil},
+		{[][]string{
+			{"a", "/{foobar}"},
+			{"b", "/"},
+			{"c", "/foo/{bar}"},
+			{"d", "/a"},
+			{"d1", "/a/1"},
+			{"d1*", "/a/1/{param}"},
+			{"e", "/e"},
+			{"e1", "/e/1"},
+			{"e1*", "/e/1/{param}"},
+		}, "/baz/123", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("foobar", "baz/123"), NamedEndToken("a")}},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%q->%q", tt.namedPatterns, tt.in), func(t *testing.T) {
@@ -304,13 +315,39 @@ func Test_PatternWithSeparator(t *testing.T) {
 
 func Test_nextEnd(t *testing.T) {
 	n := &node{}
-	assert.False(t, n.nextEnd())
+	assert.False(t, n.nextSingleEnd())
 	n = &node{Childs: []*node{{Token: ConstToken("!")}}}
-	assert.False(t, n.nextEnd())
+	assert.False(t, n.nextSingleEnd())
 	n = &node{Childs: []*node{{Token: SeparatorToken("a")}}}
-	assert.False(t, n.nextEnd())
+	assert.False(t, n.nextSingleEnd())
 	n = &node{Childs: []*node{{Token: EndToken}}}
-	assert.True(t, n.nextEnd())
+	assert.True(t, n.nextSingleEnd())
 	n = &node{Childs: []*node{{Token: NamedEndToken("abc")}}}
-	assert.True(t, n.nextEnd())
+	assert.True(t, n.nextSingleEnd())
+}
+
+func Test_nextPrefixMatch(t *testing.T) {
+	n := &node{Childs: []*node{{Token: ConstToken("b")}}}
+	assert.True(t, n.nextPrefixMatch("b"))
+	assert.True(t, n.nextPrefixMatch("ba"))
+	assert.False(t, n.nextPrefixMatch(""))
+	n = &node{Childs: []*node{{Token: ConstToken("ba")}}}
+	assert.False(t, n.nextPrefixMatch(""))
+	assert.False(t, n.nextPrefixMatch("b"))
+	assert.True(t, n.nextPrefixMatch("ba"))
+
+	n = &node{Childs: []*node{
+		{Token: ConstToken("b")},
+		{Token: ConstToken("ba")},
+	}}
+	assert.True(t, n.nextPrefixMatch("b"))
+	assert.True(t, n.nextPrefixMatch("ba"))
+	assert.True(t, n.nextPrefixMatch("bac"))
+	assert.False(t, n.nextPrefixMatch(""))
+}
+
+func Test_nextHas(t *testing.T) {
+	n := &node{Childs: []*node{{Token: ConstToken("b")}}}
+	assert.True(t, n.nextHas(CONST))
+	assert.False(t, n.nextHas(END))
 }
