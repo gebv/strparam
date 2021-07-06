@@ -177,14 +177,35 @@ func Test_StoreMultiple(t *testing.T) {
 			{"path", "/path/"},
 		}, "/path/foo", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("param", "foo"), NamedEndToken("pathParams")}},
 
+		// https://github.com/gebv/strparam/issues/7
 		{[][]string{
-			{"index", "/{foobar}"},
-			{"sub", "/b"},
-		}, "/baz", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("foobar", "baz"), NamedEndToken("index")}},
+			{"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			{"d", "/baz"},
+			{"e", "/ba{foobar}"},
+		}, "/baz", true, Tokens{StartToken, ConstToken("/baz"), NamedEndToken("d")}},
 		{[][]string{
-			{"index", "/{foobar}"},
-			{"sub", "/b"},
-		}, "/b", true, Tokens{StartToken, ConstToken("/b"), NamedEndToken("sub")}},
+			{"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			// {"d", "/baz"},
+			{"e", "/ba{foobar}"},
+		}, "/baz", true, Tokens{StartToken, ConstToken("/ba"), ParsedParameterToken("foobar", "z"), NamedEndToken("e")}},
+		{[][]string{
+			{"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			// {"d", "/baz"},
+			// {"e", "/ba{foobar}"},
+		}, "/baz", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("foobar", "baz"), NamedEndToken("a")}},
+		{[][]string{
+			// {"a", "/{foobar}"},
+			{"b", "/b"},
+			{"c", "/ba"},
+			// {"d", "/baz"},
+			// {"e", "/ba{foobar}"},
+		}, "/baz", false, nil},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%q->%q", tt.namedPatterns, tt.in), func(t *testing.T) {

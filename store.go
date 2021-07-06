@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -121,6 +122,10 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 			// -- -- {END}
 
 			if offset+child.Token.Len <= len(in) {
+				if nextEnd(in, offset, child) && offset+child.Token.Len != len(in) {
+					continue
+				}
+				log.Println(">>", in[offset:], child.Token.Raw, idx, len(parent.Childs))
 				if in[offset:offset+child.Token.Len] == child.Token.Raw {
 					*res = append(*res, child.Token)
 
@@ -218,6 +223,13 @@ func rightPath(in string, offset int, node *node) (*node, int) {
 		}
 	}
 	return nil, 0
+}
+
+func nextEnd(in string, offset int, node *node) bool {
+	if len(node.Childs) != 1 {
+		return false
+	}
+	return node.Childs[0].Token.Mode == END
 }
 
 // TODO: cover with tests as the tree is filled
