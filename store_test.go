@@ -325,3 +325,29 @@ func Test_nextEnd(t *testing.T) {
 	n = &node{Childs: []*node{{Token: NamedEndToken("abc")}}}
 	assert.True(t, n.nextSingleEnd())
 }
+
+func Test_nextPrefixMatch(t *testing.T) {
+	n := &node{Childs: []*node{{Token: ConstToken("b")}}}
+	assert.True(t, n.nextPrefixMatch("b"))
+	assert.True(t, n.nextPrefixMatch("ba"))
+	assert.False(t, n.nextPrefixMatch(""))
+	n = &node{Childs: []*node{{Token: ConstToken("ba")}}}
+	assert.False(t, n.nextPrefixMatch(""))
+	assert.False(t, n.nextPrefixMatch("b"))
+	assert.True(t, n.nextPrefixMatch("ba"))
+
+	n = &node{Childs: []*node{
+		{Token: ConstToken("b")},
+		{Token: ConstToken("ba")},
+	}}
+	assert.True(t, n.nextPrefixMatch("b"))
+	assert.True(t, n.nextPrefixMatch("ba"))
+	assert.True(t, n.nextPrefixMatch("bac"))
+	assert.False(t, n.nextPrefixMatch(""))
+}
+
+func Test_nextHas(t *testing.T) {
+	n := &node{Childs: []*node{{Token: ConstToken("b")}}}
+	assert.True(t, n.nextHas(CONST))
+	assert.False(t, n.nextHas(END))
+}
