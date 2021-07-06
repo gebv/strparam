@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -125,7 +124,6 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 				if nextEnd(in, offset, child) && offset+child.Token.Len != len(in) {
 					continue
 				}
-				log.Println(">>", in[offset:], child.Token.Raw, idx, len(parent.Childs))
 				if in[offset:offset+child.Token.Len] == child.Token.Raw {
 					*res = append(*res, child.Token)
 
