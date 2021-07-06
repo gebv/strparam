@@ -301,3 +301,16 @@ func Test_PatternWithSeparator(t *testing.T) {
 		t.Log(params)
 	})
 }
+
+func Test_nextEnd(t *testing.T) {
+	n := &node{}
+	assert.False(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: ConstToken("!")}}}
+	assert.False(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: SeparatorToken("a")}}}
+	assert.False(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: EndToken}}}
+	assert.True(t, n.nextEnd())
+	n = &node{Childs: []*node{{Token: NamedEndToken("abc")}}}
+	assert.True(t, n.nextEnd())
+}

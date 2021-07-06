@@ -121,7 +121,7 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 			// -- -- {END}
 
 			if offset+child.Token.Len <= len(in) {
-				if nextEnd(in, offset, child) && offset+child.Token.Len != len(in) {
+				if child.nextEnd() && offset+child.Token.Len != len(in) {
 					continue
 				}
 				if in[offset:offset+child.Token.Len] == child.Token.Raw {
@@ -223,13 +223,6 @@ func rightPath(in string, offset int, node *node) (*node, int) {
 	return nil, 0
 }
 
-func nextEnd(in string, offset int, node *node) bool {
-	if len(node.Childs) != 1 {
-		return false
-	}
-	return node.Childs[0].Token.Mode == END
-}
-
 // TODO: cover with tests as the tree is filled
 func appendChild(parent *node, i int, tokens []Token) {
 	if i >= len(tokens) {
@@ -297,6 +290,13 @@ func (n *node) lengthConstOrZero() int {
 		return 0
 	}
 	return len(n.Token.Raw)
+}
+
+func (n *node) nextEnd() bool {
+	if len(n.Childs) != 1 {
+		return false
+	}
+	return n.Childs[0].Token.Mode == END
 }
 
 // Less returns true if
