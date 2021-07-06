@@ -176,6 +176,15 @@ func Test_StoreMultiple(t *testing.T) {
 			{"pathParams", "/path/{param}"},
 			{"path", "/path/"},
 		}, "/path/foo", true, Tokens{StartToken, ConstToken("/path/"), ParsedParameterToken("param", "foo"), NamedEndToken("pathParams")}},
+
+		{[][]string{
+			{"index", "/{foobar}"},
+			{"sub", "/b"},
+		}, "/baz", true, Tokens{StartToken, ConstToken("/"), ParsedParameterToken("foobar", "baz"), NamedEndToken("index")}},
+		{[][]string{
+			{"index", "/{foobar}"},
+			{"sub", "/b"},
+		}, "/b", true, Tokens{StartToken, ConstToken("/b"), NamedEndToken("sub")}},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%q->%q", tt.namedPatterns, tt.in), func(t *testing.T) {
