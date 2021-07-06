@@ -111,6 +111,43 @@ func Test_TableTestRoutes(t *testing.T) {
 	}
 }
 
+func Test_issues7(t *testing.T) {
+	// https://github.com/gebv/strparam/issues/7
+	r := NewRouter()
+	r.NotFoundHandelr = fText200("not found")
+	r.Add(http.MethodGet, "/{foobar}", fText200("/{foobar} %v", "foobar"))
+	r.Add(http.MethodGet, "/", fText200("/"))
+	r.Add(http.MethodGet, "/foo/{bar}/", fText200("/foo/{bar} %v", "bar"))
+	r.Add(http.MethodGet, "/a", fText200("/a"))
+	r.Add(http.MethodGet, "/a/1", fText200("/a/1"))
+	r.Add(http.MethodGet, "/a/1/{param}", fText200("/a/1/{param} %v", "param"))
+	r.Add(http.MethodGet, "/b", fText200("/b"))
+	r.Add(http.MethodGet, "/b/1", fText200("/b/1"))
+	r.Add(http.MethodGet, "/b/1/{param}", fText200("/b/1/{param} %v", "param"))
+
+	t.Log("[INFO] schema", r.store.String())
+
+	cases := []struct {
+		in       string
+		wantBody string
+	}{
+		{"/b/1/asd", "/b/1/{param} asd"},
+		{"/b/1", "/b/1"},
+		{"/b/", "not found"},
+		{"/baz", "/{foobar} baz"},
+	}
+
+	for _, case_ := range cases {
+		t.Run(case_.in, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			request, err := http.NewRequest("GET", case_.in, nil)
+			require.NoError(t, err)
+			r.ServeHTTP(recorder, request)
+			assert.EqualValues(t, case_.wantBody, recorder.Body.String())
+		})
+	}
+}
+
 func BenchmarkSimpleRouting(b *testing.B) {
 	router := NewRouter()
 	router.ErrorHandler = func(w http.ResponseWriter, req *http.Request) {

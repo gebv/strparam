@@ -119,19 +119,29 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 			// -- -- -- {END}
 			// -- -- {CONST}
 			// -- -- {END}
-
 			if offset+child.Token.Len <= len(in) {
-				if child.nextEnd() && offset+child.Token.Len != len(in) {
+				// if the next token is END then the tail must match exactly
+				if child.nextSingleEnd() && offset+child.Token.Len != len(in) {
 					continue
 				}
 				if in[offset:offset+child.Token.Len] == child.Token.Raw {
-					*res = append(*res, child.Token)
+					if offset+child.Token.Len == len(in) {
+						// end of the list
+						*res = append(*res, child.Token)
+						lookupNextToken(in, offset+child.Token.Len, child, res, numParams)
+						return
+					}
 
-					// jump into the branch
-					lookupNextToken(in, offset+child.Token.Len, child, res, numParams)
+					if child.nextHas(PARAMETER) || child.nextPrefixMatch(in[offset+child.Token.Len:]) {
+						// childs has match token
 
-					// returns because we move deeper into the tree
-					return
+						*res = append(*res, child.Token)
+						// next params
+						lookupNextToken(in, offset+child.Token.Len, child, res, numParams)
+						// returns because we move deeper into the tree
+						return
+					}
+
 				}
 			}
 
@@ -186,7 +196,7 @@ func lookupNextToken(in string, offset int, parent *node, res *[]Token, numParam
 func rightPath(in string, offset int, node *node) (*node, int) {
 	for _, child := range node.Childs {
 		switch child.Token.Mode {
-		// case PARAMETER:
+		case PARAMETER:
 		// 	// -- {CONST}
 		// 	// -- -- {PARAM} <- look here
 		// 	// -- -- -- {CONST}
@@ -292,11 +302,40 @@ func (n *node) lengthConstOrZero() int {
 	return len(n.Token.Raw)
 }
 
-func (n *node) nextEnd() bool {
+func (n *node) nextSingleEnd() bool {
 	if len(n.Childs) != 1 {
 		return false
 	}
 	return n.Childs[0].Token.Mode == END
+}
+
+func (n *node) nextHas(find TokenMode) bool {
+	if len(n.Childs) == 0 {
+		return false
+	}
+	for _, child := range n.Childs {
+		if child.Token.Mode == find {
+			return true
+		}
+	}
+	return false
+}
+
+func (n *node) nextPrefixMatch(offseted string) bool {
+	if len(n.Childs) == 0 {
+		return false
+	}
+	for _, child := range n.Childs {
+		if child.Token.Mode == SEPARATOR || child.Token.Mode == CONST {
+			if len(offseted) < child.Token.Len {
+				continue
+			}
+			if offseted[:child.Token.Len] == child.Token.Raw {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Less returns true if
